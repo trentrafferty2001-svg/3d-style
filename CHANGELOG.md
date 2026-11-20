@@ -1,6 +1,9 @@
 # Changelog
 
-## v1.0.0 (20 Nov 2026)
+Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
+GitHub). Use the full commit id in a channel's rules file.
+
+## v1.0.0 (20 Nov 2026) = commit 9df268009364ad0306a48d02f21ba89bcec7ffcc
 First release, moved from `tools/style-v2/` and `tools/kaggle-render/` in video-studio.
 
 - Engine: springs, anticipation and overshoot; 30 fps sub-frame motion blur with jittered antialiasing; PCF soft

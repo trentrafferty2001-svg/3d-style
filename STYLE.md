@@ -54,7 +54,7 @@ A shots file can export `STYLE = { shadow: 'pcf', mb: 6, shutter: 0.5 }`. URL ov
 mkdir -p /home/claude/deps && cd /home/claude/deps
 git clone --depth 1 --branch r169 --filter=blob:none --sparse https://github.com/mrdoob/three.js.git three
 cd three && git sparse-checkout set build examples/jsm/postprocessing examples/jsm/shaders examples/jsm/utils examples/jsm/geometries
-git clone --depth 1 --branch v1.0.0 https://github.com/trentrafferty2001-svg/3d-style /home/claude/3d-style
+git clone https://github.com/trentrafferty2001-svg/3d-style /home/claude/3d-style && git -C /home/claude/3d-style checkout <commit from the channel's rules>
 cp -R /home/claude/3d-style/engine /home/claude/style2 && cd /home/claude/style2
 mkdir -p node_modules && ln -sfn /home/claude/deps/three node_modules/three && ln -sfn "$(npm root -g)/playwright" node_modules/playwright
 pip install scipy onnxruntime   # voice + mix

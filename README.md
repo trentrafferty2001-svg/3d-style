@@ -17,7 +17,8 @@ the mud counterweight lifts it.
 
 ## Versions
 
-Releases are tagged (`v1.0.0`, ...). Channels pin a tag, so an upgrade never changes a video mid-production. Each
+Each release is a commit listed in `CHANGELOG.md` (v1.0.0 = `9df2680`). Channels pin that commit, so an upgrade never
+changes a video mid-production: `git clone https://github.com/trentrafferty2001-svg/3d-style && git -C 3d-style checkout <commit>`. Each
 render job also bundles its own copy of the engine, so finished videos stay reproducible. See `CHANGELOG.md`.
 
 ## Credits

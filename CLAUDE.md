@@ -11,6 +11,7 @@ version of this repo to use).
   viewed large, the pop scan, `earshot critique`). Nothing ships with floating objects, hands through bodies or pops.
 - Never commit renders, audio, `node_modules` or keys. No personal details in code: the Kaggle username and the job
   repo come from environment variables.
-- Changes: fix and improve here, add a line to `CHANGELOG.md`, and tag a new version (`v1.0.1` for fixes, `v1.1.0` for
-  new features). Tell the owner which channels should move to the new tag; their rules files pin the version.
+- Changes: fix and improve here, then add the release to `CHANGELOG.md` with its version (`v1.0.1` for fixes, `v1.1.0` for
+  new features) and full commit id. Tag pushes are blocked from the cloud sessions, so versions are pinned by commit.
+  Tell the owner which channels should move to the new commit; their rules files pin it.
 - The owner allows Claude to merge its own pull requests here when they merge cleanly.
