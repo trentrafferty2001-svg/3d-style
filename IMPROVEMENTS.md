@@ -1,0 +1,79 @@
+# Improving the 3D style: where we are and what's next
+
+This file carries the improvement work from one session to the next. **Read it first when the job is to make the style
+better** (not to make a channel video). At the end of every improvement session, update "Status" and the
+session log at the bottom, then commit.
+
+## Rules for improvement sessions (set by the owner)
+
+- **No full videos yet.** The owner is still improving quality. Test on the shaduf demo (`engine/src/shots_dm.js`,
+  7.5 s) or a short test scene, and send short clips or stills only.
+- **No mistakes.** Every change passes the QA in `STYLE.md` before a clip goes to the owner: probes, stills every
+  0.25 s viewed large, the pop scan, `earshot critique`. Nothing floating, no hands through bodies, no pops.
+- **Free only.** Kaggle's free T4 GPU first (6 GPU hours a week, shared by both channels, resets Saturday 00:00 UTC),
+  then the 20-runner GitHub farm (`render-farm` branch of `trentrafferty2001-svg/the-ai-frontier-media`).
+- **Channels stay pinned.** Ancient Explained and The Explainer use v1.0.0 (`9df268009364ad0306a48d02f21ba89bcec7ffcc`)
+  from January 2027. A new version only reaches them when the owner says so; then update the pins in
+  video-studio's `PIPELINE_RULES.md` (branch `ancient-explained-remake`) and `EXPLAINER.md` (branch `explainer-channel`).
+- December 2026 videos keep the old look; don't touch them.
+- Release: work on a branch, PR into `main`, merge (the owner allows it), then add the version to `CHANGELOG.md`
+  with its full commit id (v1.0.1 fixes, v1.1.0 features). Tags can't be pushed from cloud sessions.
+
+## Status (20 Nov 2026)
+
+v1.0.0 is done and the owner is happy with it. Shipped so far:
+
+- **Motion:** springs, anticipation and overshoot, simulated pendulums and grips, handheld camera, camera paths.
+- **Image:** 30 fps motion blur (mb=6 demo, mb=4 for channel videos) with jittered antialiasing, PCF soft shadows,
+  GTAO, NaN-safe bloom.
+- **Water and set:** planar water reflections with shallows tint and shore foam, detail textures, palms and grass
+  in the wind.
+- **Character:** reworked eyes (gaze limit, lids follow the gaze), shaped lips and individual teeth in a mouth hollow,
+  kilt pendulum and flutter.
+- **Rendering:** about 5 minutes on Kaggle for the 7.5 s demo, about 20 minutes per 45 s video.
+
+## Improvement backlog (pick from the top, agree the pick with the owner)
+
+Ordered by how much a viewer would notice. Each item names how to prove it worked.
+
+1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
+   from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
+   *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
+2. **Sets beyond the Nile.** January videos cover other eras and places. `rome.js`, `persia.js`, `egypt.js`,
+   `farm2.js` and `props*.js` are still at the old quality: give them the v2 treatment (detail textures, rounded
+   edges, wind, grounding, cache keys). *Proof:* one test shot per set, plus `probe_qa.mjs` grounding.
+3. **Hands.** Finger curl that wraps around ropes, handles and tools, contact checked by a probe, and relaxed
+   hands that aren't stiff. *Proof:* hand probe under 6 cm while gripping, plus close-up stills.
+4. **Rope and cloth as real simulation.** A verlet chain for ropes (sag, swing, slack when let go) and a baked
+   cloth table for the kilt hem, both simulated once at build time so frames stay pure functions of time.
+   *Proof:* probes for rope through hands or bucket, pop scan.
+5. **Water interaction.** Impact ripple rings, splash particles and spray, caustics on the shallows, and wet
+   darkening that dries over time. *Proof:* dense stills around the splash, no bloom haze.
+6. **Light and grade.** Sky environment lighting (PMREM) for softer fill, a rim light for the character, a gentle
+   film look (subtle grain, vignette, one shared colour grade), and optional god rays.
+   *Proof:* before/after stills side by side, highlights not clipping.
+7. **Skin and materials.** Wrap lighting or a cheap subsurface term so skin isn't plastic, slight roughness
+   variation on clay, wood and linen.
+8. **Crowds and extras.** Reuse `toon.js` with different builds, skin tones, clothes and faces for background people,
+   driven by simple loops. *Proof:* bucket and body probes extended to all characters.
+9. **Speed.** Adaptive motion blur (fewer samples on slow shots, more on fast ones), and caching static shadow maps,
+   so more videos fit in the 6 Kaggle hours.
+10. **One-command QA.** A single script that runs every probe, the pop scan and the stills sheet and prints
+    PASS/FAIL, so no check is skipped.
+
+## How to work on an item
+
+1. Set up as in `STYLE.md` → Setup (three.js r169, engine copy, Playwright).
+2. Change the engine here in `engine/src/`, test with quick stills (`?mb=1`, 720p, SwiftShader) and the face bench
+   (`shots_ft.js`) after any face change.
+3. Run the full QA, then a short motion-blurred clip on Kaggle:
+   `KAGGLE_OWNER=<Kaggle username> JOB_REPO=<job repo> KAGGLE_API_TOKEN=proxy-injected python3 -I kaggle/kaggle_job.py <job>`
+   (the values are in the channels' rules files in video-studio; the token is a network secret on the owner's
+   cloud environment, never in chat or code; the job zip goes in `kaggle/` on the `render-farm` branch; see `kaggle/README.md`).
+4. Send the clip with SendUserFile. Wait for the owner's verdict before moving on.
+5. Write what you learned in `STYLE.md` → Lessons, and update this file.
+
+## Session log
+
+- **20 Nov 2026:** v1.0.0 released and moved here from video-studio. Kaggle renderer working (EGL onto NVIDIA).
+  The backlog above was written for the next session; no item started yet.
