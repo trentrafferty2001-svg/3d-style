@@ -4,6 +4,7 @@ This repo is the owner's 3D cartoon video style. Ancient Explained and The Expla
 January 2027 (their pipelines live in the private repo `trentrafferty2001-svg/video-studio`; their rules files say which
 version of this repo to use).
 
+- Improving the style (not making a channel video)? Read `IMPROVEMENTS.md` first: rules, status and the backlog.
 - Read `STYLE.md` first: setup, how to make a video, the QA checklist and lessons learned.
 - Free providers only. Render on Kaggle's free GPU (`kaggle/README.md`); fall back to the GitHub farm when the weekly
   Kaggle GPU quota (6 hours, shared by both channels) is used up.

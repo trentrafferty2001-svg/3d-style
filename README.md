@@ -13,6 +13,7 @@ the mud counterweight lifts it.
 | `scripts/` | Camera framing and search, QA probes, a 30 fps block renderer, Kokoro voice, timing export, the sound mix. |
 | `kaggle/` | Free GPU rendering on Kaggle: the notebook worker and a one-command job runner. |
 | `examples/shaduf-demo/` | The demo's script, voice timings and sound events. |
+| `IMPROVEMENTS.md` | Status of the improvement work, its rules and the backlog. |
 | `STYLE.md` | How the style works, setup, how to make a video, the QA checklist and lessons learned. **Read it first.** |
 
 ## Versions
