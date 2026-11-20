@@ -9,7 +9,7 @@ import { GTAOPass } from './GTAOPass.js'; // local copy: its ../math import is m
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 import { SHOTS, CAPTIONS, DURATION, FADES } from './shots_dm.js';
 import * as SHX from './shots_dm.js';
-// Per-video look settings a shots file can export: STYLE = { shadow: 'pcf'|'vsm'|'soft', mb: samples, shutter: 0..1, exposure }
+// Per-video look settings a shots file can export: STYLE = { shadow: 'pcf'|'vsm'|'soft', mb: samples, shutter: 0..1, exposure, grain: 0..0.05 }
 const STYLE = SHX.STYLE || {};
 import { TIME, skyMaterial as outdoorSky, SKY_PRESETS } from './world.js';
 
@@ -131,13 +131,22 @@ const dummyScene = new THREE.Scene(), dummyCam = new THREE.PerspectiveCamera();
 const renderPass = new RenderPass(dummyScene, dummyCam);
 const bokeh = new BokehPass(dummyScene, dummyCam, { focus: 2, aperture: 0.002, maxblur: 0.01 });
 const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), 0.25, 0.5, 1.2);
+// film grain (v1.1): fine monochrome grain, strongest in the midtones, new every output frame. Applied once per output
+// frame (after the motion-blur average), so it looks the same at any mb. STYLE.grain sets the strength (0 = off).
+const GRAIN_GLSL = `vec3 filmGrain(vec3 col, vec2 px, float t, float amt) {
+    if (amt <= 0.0) return col;
+    vec2 q = px + vec2(floor(t * 30.0 + 0.5) * 17.0, floor(t * 30.0 + 0.5) * 29.0);
+    float n = fract(sin(dot(q, vec2(12.9898, 78.233))) * 43758.5453) + fract(sin(dot(q + 0.37, vec2(39.3468, 11.135))) * 24634.6345) - 1.0; // triangular, -1..1
+    float l = dot(clamp(col, 0.0, 1.0), vec3(0.299, 0.587, 0.114));
+    return col + n * amt * (0.35 + 2.6 * l * (1.0 - l)); }`;
 const grade = new ShaderPass({
   uniforms: {
     tDiffuse: { value: null }, uTime: { value: 0 }, uVig: { value: 0.3 }, uWhip: { value: 0 },
-    uSun: { value: new THREE.Vector2(0.5, 0.5) }, uFlare: { value: 0 }, uWarm: { value: 1 }, uSat: { value: 1.12 }, uRes: { value: RES / 720 },
+    uSun: { value: new THREE.Vector2(0.5, 0.5) }, uFlare: { value: 0 }, uWarm: { value: 1 }, uSat: { value: 1.12 }, uRes: { value: RES / 720 }, uGrain: { value: 0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uVig, uWhip, uFlare, uWarm, uSat, uRes; uniform vec2 uSun; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uVig, uWhip, uFlare, uWarm, uSat, uRes, uGrain; uniform vec2 uSun; varying vec2 vUv;
+    ${GRAIN_GLSL}
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)) + uTime*7.13) * 43758.5453); }
     vec3 ghost(vec2 uv, vec2 c, float r, vec3 col){ vec2 d = (uv - c); d.x *= 0.5625; float k = 1.0 - smoothstep(r*0.7, r, length(d)); return col * k; }
     void main(){ vec4 c = vec4(0.0);
@@ -165,6 +174,7 @@ const grade = new ShaderPass({
       col *= 1.0 - uVig * smoothstep(0.2, 0.66, length(q));
       vec2 px = floor(vUv * vec2(720.0, 1280.0) * uRes);
       col += (fract(dot(px, vec2(0.7548777, 0.5698403))) - 0.5) / 255.0;
+      col = filmGrain(col, px, uTime, uGrain);
       gl_FragColor = vec4(col, 1.0); }`,
 });
 composer.addPass(renderPass);
@@ -224,6 +234,8 @@ window.DURATION = DURATION;
 const MB = Number(QS0.get('mb') || STYLE.mb || 1);
 const FPS = Number(QS0.get('fps') || 24);
 const SHUTTER = Number(QS0.get('shutter') || STYLE.shutter || 0.5);
+const GRAIN = QS0.has('grain') ? Number(QS0.get('grain')) : (STYLE.grain ?? 0.022);
+grade.uniforms.uGrain.value = MB <= 1 ? GRAIN : 0;
 const accRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.FloatType, depthBuffer: false });
 const VS = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const accQuad = new FullScreenQuad(new THREE.ShaderMaterial({
@@ -234,9 +246,11 @@ const accQuad = new FullScreenQuad(new THREE.ShaderMaterial({
   depthTest: false, depthWrite: false, transparent: true,
 }));
 const outQuad = new FullScreenQuad(new THREE.ShaderMaterial({
-  uniforms: { tDiffuse: { value: accRT.texture } }, vertexShader: VS,
-  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
-    void main(){ gl_FragColor = vec4(pow(max(texture2D(tDiffuse, vUv).rgb, 0.0), vec3(1.0 / 2.2)), 1.0); }`,
+  uniforms: { tDiffuse: { value: accRT.texture }, uTime: { value: 0 }, uGrain: { value: GRAIN }, uRes: { value: RES / 720 } }, vertexShader: VS,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uRes; varying vec2 vUv;
+    ${GRAIN_GLSL}
+    void main(){ vec3 c = pow(max(texture2D(tDiffuse, vUv).rgb, 0.0), vec3(1.0 / 2.2));
+      gl_FragColor = vec4(filmGrain(c, floor(vUv * vec2(720.0, 1280.0) * uRes), uTime, uGrain), 1.0); }`,
   depthTest: false, depthWrite: false,
 }));
 const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
@@ -310,7 +324,7 @@ window.renderAt = (t) => {
       renderer.setRenderTarget(accRT); accQuad.render(renderer);
       renderer.autoClear = ac;
     }
-    renderer.setRenderTarget(null); outQuad.render(renderer);
+    renderer.setRenderTarget(null); outQuad.material.uniforms.uTime.value = t; outQuad.render(renderer);
     TIME.value = t;
   }
   // captions: pop in, highlighted keywords
