@@ -77,10 +77,10 @@ const FPOS = V(0.5, PLAT.y, 2.02);
 // reaches up to grab higher while the other hand holds. Simulated once at 500 Hz into a table.
 const ropeDir = (sw) => new THREE.Vector3(Math.sin(sw[1]), -Math.cos(sw[1]) * Math.cos(sw[0]), Math.sin(sw[0])).normalize();
 const ropePoint = (t, s) => tipAt(poleA(t)).addScaledVector(ropeDir(swingAt(t)), s);
-const HI = 2.15, LO = 1.74, REACH = 0.24;
+const HI = 2.03, LO = 1.82, REACH = 0.20; // grab and let-go heights keep every grip within arm's reach (probe_hands)
 function simulateHands() {
   const dt = 0.002, N = Math.ceil(T_REL / dt) + 2; const tab = { l: [], r: [] };
-  const st = { l: { mode: 'grip', s: 1.72, t0: 0 }, r: { mode: 'grip', s: 1.84, t0: 0 } }; // just above the bucket's bail
+  const st = { l: { mode: 'grip', s: 1.85, t0: 0 }, r: { mode: 'grip', s: 1.86, t0: 0 } }; // just above the bucket's bail
   for (let i = 0; i < N; i++) {
     const t = i * dt;
     for (const h of ['l', 'r']) {
@@ -236,10 +236,10 @@ const bucketAtT = (t) => tipAt(poleA(t)).addScaledVector(ropeDir(swingAt(t)), RO
 function rig(makeStage) {
   const W = world(makeStage);
   const F = toon({ skin: 0x8a5232, cloth: 0xefe6d0, belt: 0x9a4a2a }); W.scene.add(F.root);
-  if (window.DBG) { window._F = F; window._S = W.S; window._W = W; window._R = { ropePoint, poleA }; } // ?dbg: lets the probe scripts measure the scene
+  if (window.DBG) { window._F = F; window._S = W.S; window._W = W; window._R = { ropePoint, poleA, T_REL }; } // ?dbg: lets the probe scripts measure the scene
   F.root.position.copy(FPOS); F.root.rotation.y = -Math.PI / 2;
   const fx = effects(W.scene, W.S);
-  const hands = simulateHands();
+  const hands = simulateHands(); if (window.DBG) window._R.hands = hands;
   const b = birds(5, { from: [-30, 11, -14], to: [30, 13, -22], spread: 4, speed: 0.06, scale: 1.3, seed: 6 }); W.scene.add(b);
   const T_HIPS = T_REL + 1.0, T_NOD = at(1, 'lifting') + 0.1; // hands to hips, proud nod
 

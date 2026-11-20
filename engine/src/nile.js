@@ -232,7 +232,8 @@ export function shaduf() {
     const tp = tip.getWorldPosition(new THREE.Vector3()); g.worldToLocal(tp);
     const dir = new THREE.Vector3(Math.sin(swing[1]), -Math.cos(swing[1]) * Math.cos(swing[0]), Math.sin(swing[0])).normalize();
     const bp = tp.clone().addScaledVector(dir, ROPE); // handle ring
-    rope.position.copy(tp).addScaledVector(dir, (ROPE - 0.01) / 2); rope.scale.y = ROPE - 0.01; // down to the top of the bail rope.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+    rope.position.copy(tp).addScaledVector(dir, (ROPE - 0.01) / 2); rope.scale.y = ROPE - 0.01; // down to the top of the bail
+    rope.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
     bucket.position.copy(bp).addScaledVector(dir, 0.21); bucket.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
     water.visible = fill > 0.02; water.position.y = -0.31 + 0.27 * fill; water.rotation.set(-Math.PI / 2 + slosh, 0, 0);
   };
