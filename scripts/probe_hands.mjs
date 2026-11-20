@@ -9,6 +9,10 @@ for (const t of TS) console.log(t, await pg.evaluate((t) => { window.renderAt(t)
   const dist = (p) => { const ab = c.clone().sub(a), ap = p.clone().sub(a); const k = Math.max(0, Math.min(1, ap.dot(ab) / ab.lengthSq())); return a.clone().addScaledVector(ab, k).distanceTo(p); };
   const palm = (s) => F.bones[s + 'Wr'].localToWorld(new V(0, -0.05, 0));
   const sh = (s) => F.bones[s + 'Sh'].getWorldPosition(new V());
-  return ['l', 'r'].map(s => `${s}: palm-rope ${dist(palm(s)).toFixed(3)} m, palm-shoulder ${palm(s).distanceTo(sh(s)).toFixed(3)} m, palm y ${palm(s).y.toFixed(2)}`).join(' | ');
+  const R = window._R; const grip = (s) => (R && R.hands && t < R.T_REL) ? (R.hands(s, t).mode ? 'grip' : 'reach') : '-';
+  window._gripMax = window._gripMax || 0; for (const s of ['l', 'r']) if (grip(s) === 'grip') window._gripMax = Math.max(window._gripMax, dist(palm(s)));
+  return ['l', 'r'].map(s => `${s} ${grip(s)}: palm-rope ${dist(palm(s)).toFixed(3)} m, palm-shoulder ${palm(s).distanceTo(sh(s)).toFixed(3)} m, palm y ${palm(s).y.toFixed(2)}`).join(' | ');
 }, t));
+const gm = await pg.evaluate(() => window._gripMax || 0);
+console.log(`largest palm-rope distance while gripping: ${(gm * 100).toFixed(1)} cm -> ${gm > 0 && gm < 0.06 ? 'PASS' : 'FAIL'} (under 6 cm)`);
 await b.close(); server.close();
