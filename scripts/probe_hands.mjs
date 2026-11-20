@@ -1,0 +1,14 @@
+import { chromium } from 'playwright'; import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const ROOT = process.argv[2], TS = process.argv[3].split(',').map(Number);
+const server = http.createServer((req, res) => { const p = path.join(ROOT, decodeURIComponent(req.url.split('?')[0])); fs.readFile(p, (e, d) => { if (e) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'content-type': p.endsWith('.js') ? 'text/javascript' : p.endsWith('.html') ? 'text/html' : 'application/octet-stream' }); res.end(d); }); }).listen(0);
+const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const pg = await b.newPage({ viewport: { width: 180, height: 320 } });
+pg.on('pageerror', e => console.log('ERR', e.message));
+await pg.goto(`http://localhost:${server.address().port}/index.html?render=1&res=180&mb=1&noao&dbg`); await pg.waitForFunction(() => window.renderAt && window.ready);
+for (const t of TS) console.log(t, await pg.evaluate((t) => { window.renderAt(t); const F = window._F, S = window._S; const V = F.root.position.constructor;
+  const rope = S.userData.rope; rope.updateMatrixWorld(true); const a = rope.localToWorld(new V(0, 0.5, 0)), c = rope.localToWorld(new V(0, -0.5, 0));
+  const dist = (p) => { const ab = c.clone().sub(a), ap = p.clone().sub(a); const k = Math.max(0, Math.min(1, ap.dot(ab) / ab.lengthSq())); return a.clone().addScaledVector(ab, k).distanceTo(p); };
+  const palm = (s) => F.bones[s + 'Wr'].localToWorld(new V(0, -0.05, 0));
+  const sh = (s) => F.bones[s + 'Sh'].getWorldPosition(new V());
+  return ['l', 'r'].map(s => `${s}: palm-rope ${dist(palm(s)).toFixed(3)} m, palm-shoulder ${palm(s).distanceTo(sh(s)).toFixed(3)} m, palm y ${palm(s).y.toFixed(2)}`).join(' | ');
+}, t));
+await b.close(); server.close();

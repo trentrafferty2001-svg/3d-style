@@ -1,0 +1,11 @@
+node_modules/
+*.mp4
+*.wav
+*.m4a
+*.png
+*.jpg
+!engine/fonts/*
+__pycache__/
+.env
+kaggle.json
+access_token

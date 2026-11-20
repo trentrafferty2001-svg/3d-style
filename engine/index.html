@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>zach-d-films</title>
+<style>
+  @font-face { font-family: 'Cap'; src: url('fonts/Poppins-Bold.ttf') format('truetype'); font-weight: 700; }
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #stage { position: relative; width: 720px; height: 1280px; overflow: hidden; }
+  canvas { display: block; }
+  #cap {
+    position: absolute; left: calc(30px * var(--s, 1)); right: calc(30px * var(--s, 1)); top: calc(770px * var(--s, 1)); text-align: center;
+    font: 700 calc(62px * var(--s, 1))/1.08 'Cap', sans-serif; color: #fff; letter-spacing: calc(0.3px * var(--s, 1));
+    -webkit-text-stroke: calc(11px * var(--s, 1)) #0a0a0a; paint-order: stroke fill;
+    text-shadow: 0 calc(6px * var(--s, 1)) 0 rgba(0,0,0,.5), 0 calc(12px * var(--s, 1)) calc(30px * var(--s, 1)) rgba(0,0,0,.45);
+    transform-origin: 50% 55%; will-change: transform;
+  }
+  #cap .hl { color: #ffd43b; }
+  #preload { position: absolute; opacity: 0; font: 700 20px 'Cap'; }
+  #fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+  #hud { display: none; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage"><div id="fade"></div><div id="cap"></div></div>
+<div id="preload">Aa</div>
+<div id="hud"></div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
