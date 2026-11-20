@@ -91,10 +91,11 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 |---|---|---|
 | Grounding: every grass tuft, reed, palm, jar, pillar vs the real terrain surface | `probe_qa.mjs` | float < 2 cm, nothing hovering |
 | Feet on the platform over the whole clip | `probe_qa.mjs`, `probe_feet.mjs` | soles within the surface texture (about ±2 cm) |
-| Hands on the rope (grip) and within reach | `probe_hands.mjs` | under 6 cm while gripping |
+| Hands on the rope (grip) and within reach | `probe_hands.mjs` (sample densely, e.g. every 0.02 s) | its last line: under 6 cm while gripping (PASS) |
+| Rope meets the bail and the pole tip over the whole clip | `probe_rope.mjs` | PASS (both gaps under 1.5 cm) |
 | Nothing of the character inside the bucket (body, head, hands, feet) | `probe_bucket_body.mjs` | "no body part inside" |
 | Clearances: bucket vs platform, counterweight vs ground, hands vs head | `probe_qa.mjs` | all positive |
-| Pops: frame-to-frame difference scan of a 360p preview and of the final | see `projects/shaduf-demo/NEXT_STEPS.md` | only spikes at cuts |
+| Pops: frame-to-frame difference scan of a 360p preview and of the final | `python3 -I scripts/pop_scan.py <mp4> <cut s,...>` | PASS (only spikes at cuts) |
 | Dense look: a still every 0.25 s viewed at 400 px wide, plus zooms on faces and edges | `render.mjs stills` | read every frame, top to bottom |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -119,6 +120,13 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   roughness 0.3; the sanitise pass catches the rest.
 - Ropes must reach the bucket's bail; hands must grip within reach (check with the probe, not by eye).
 - In JS, `-(x) ** 2` is a syntax error; render.mjs now exits on the first page error instead of hanging.
+- Keep code off the end of a `//` comment line. v1.0.0 shipped with the rope's rotation written after a comment on
+  the same line, so the rope never tilted and ended in mid-air beside the swinging bucket. A probe for each attachment
+  (`probe_rope.mjs`) catches what stills taken while the bucket hangs still miss.
+- A probe must know what it measures: the old hand probe printed palm-to-rope distances without saying whether that
+  hand was gripping or reaching, so grips 8 cm off the rope at full arm stretch passed by eye. It now reads the grip
+  state (`?dbg` exposes it) and prints a PASS line. A two-bone arm reaches 0.605 m: keep every grip target at or under
+  about 0.59 m from the shoulder, or the arm locks straight and the palm stops short.
 
 Engine based on [claude-animation-skills](https://github.com/artemnovitckii/claude-animation-skills) (MIT, see
 `engine/LICENSE-claude-animation-skills.txt`). Poppins font: SIL OFL. three.js (MIT) and the Kokoro voice model

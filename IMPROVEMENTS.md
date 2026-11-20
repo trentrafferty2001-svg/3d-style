@@ -21,7 +21,14 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.0.0 is done and the owner is happy with it. Shipped so far:
+v1.0.1 (fixes) is released; the channels stay on v1.0.0 until the owner moves them. In progress: backlog items 6 + 7
+(light, grade and skin), agreed with the owner on 20 Nov.
+
+v1.0.1 fixed two v1.0.0 bugs found while making the baseline stills: the rope never tilted with the bucket's swing
+(it ended in mid-air beside the bail from about 5.5 s), and some grips were out of the arm's reach (palms up to
+8.3 cm off the rope). New QA: `probe_rope.mjs`, a grip-aware `probe_hands.mjs`, `pop_scan.py`.
+
+Shipped in v1.0.0:
 
 - **Motion:** springs, anticipation and overshoot, simulated pendulums and grips, handheld camera, camera paths.
 - **Image:** 30 fps motion blur (mb=6 demo, mb=4 for channel videos) with jittered antialiasing, PCF soft shadows,
@@ -77,3 +84,6 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 
 - **20 Nov 2026:** v1.0.0 released and moved here from video-studio. Kaggle renderer working (EGL onto NVIDIA).
   The backlog above was written for the next session; no item started yet.
+- **20 Nov 2026 (session 2):** Baseline stills of v1.0.0. Found and fixed the rope bug and the out-of-reach grips
+  (v1.0.1, full QA, Kaggle render of the demo in 286 s, earshot launch-grade). Recommended items 6 + 7 over lip-sync:
+  the voice is an off-screen narrator, so a talking farmer would mouth someone else's voice. The owner agreed to 6 + 7.
