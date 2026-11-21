@@ -21,8 +21,13 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.0.1 (fixes) is released; the channels stay on v1.0.0 until the owner moves them. In progress: backlog items 6 + 7
-(light, grade and skin), agreed with the owner on 20 Nov.
+v1.1.0 is released (backlog items 6 + 7: skin shading, roughness variation, film grain), waiting for the owner's verdict
+on the clip. v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
+
+v1.1.0: skin that isn't flat orange plastic (wrap and warm subsurface term, warm sky light, a view rim that separates the
+character from any background, roughness variation, linear-light desaturation), roughness maps on wood, clay and
+linen, and film grain once per output frame. Not done from items 6 + 7, left for later if wanted: god rays and a
+character-only key light per shot (the existing sky light, cool rim, bounce, vignette and grade were kept).
 
 v1.0.1 fixed two v1.0.0 bugs found while making the baseline stills: the rope never tilted with the bucket's swing
 (it ended in mid-air beside the bail from about 5.5 s), and some grips were out of the arm's reach (palms up to
@@ -43,6 +48,7 @@ Shipped in v1.0.0:
 
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
+0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -87,3 +93,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 - **20 Nov 2026 (session 2):** Baseline stills of v1.0.0. Found and fixed the rope bug and the out-of-reach grips
   (v1.0.1, full QA, Kaggle render of the demo in 286 s, earshot launch-grade). Recommended items 6 + 7 over lip-sync:
   the voice is an off-screen narrator, so a talking farmer would mouth someone else's voice. The owner agreed to 6 + 7.
+- **21 Nov 2026:** v1.1.0 (items 6 + 7). The skin's flat look was chroma, not light: the v1.0 albedo is about 8:1 red to
+  blue in linear light; turning fill and rim up and down barely changed it, a grey test showed the shape was there.
+  Full QA passed (all probes unchanged from v1.0.1, face bench, stills every 0.25 s, pop scan, earshot launch-grade,
+  clipped pixels 0.38% vs 0.39%). Kaggle: 0.82 s a frame vs 0.79, so the shading is nearly free.
