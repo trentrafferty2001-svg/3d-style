@@ -6,6 +6,49 @@ import { glowSprite } from './props.js';
 import { rng, fabricTexture } from './textures.js';
 import { romanBuilder, shadowAll, canvasTex } from './rome.js';
 import { cap } from './props60.js';
+import { triTex, tfbm, voro, courses, jointDist, h2, std, worldUV, block, settle, smoothstepAB as SS, romanMats } from './roman.js';
+import { fbm, grass, palm as nilePalm } from './nile.js';
+import { cylUV } from './indus.js';
+import { flowWaterMaterial, streamMaterial, splash } from './water.js';
+import { toon } from './toon.js';
+
+// ---------- v1.5 textures: kahgel, adobe brick, desert floor, dressed stone ----------
+let _PT = null;
+function persiaTex() {
+  if (_PT) return _PT;
+  const N = 512;
+  // kahgel (mud + straw plaster), 2.4 m tile: warm ochre, straw flecks, trowel sweeps, hairline cracks, darker rain streaks
+  const kahgel = triTex(N, (i, j) => {
+    const n = tfbm(i, j, 0.02, 301, N), sw = tfbm(i * 0.4, j * 1.4, 0.03, 302, N), straw = SS(0.8, 0.86, tfbm(i * 3, j * 0.5, 0.2, 303, N)) + SS(0.8, 0.86, tfbm(i * 0.5, j * 3, 0.2, 304, N));
+    const v = voro(i, j, N, 7, 305), cr = SS(1.2, 0, v.f2 - v.f1) * SS(0.55, 0.7, tfbm(i, j, 0.02, 306, N)), rain = SS(0.6, 0.85, tfbm(i, j * 0.08, 0.02, 307, N));
+    const c = [0.78, 0.6, 0.42].map(x => x * (0.86 + 0.18 * n + 0.06 * sw) * (1 - 0.1 * rain) * (1 - 0.3 * cr)).map((x, q) => x * (1 - 0.6 * Math.min(1, straw)) + 0.6 * Math.min(1, straw) * [0.86, 0.74, 0.5][q]);
+    return { c, b: 0.55 + 0.12 * sw + 0.08 * n - 0.3 * cr + 0.1 * Math.min(1, straw), r: 0.95 };
+  });
+  // adobe brick (sun-dried, 25 x 25 x 5 cm), 1.0 m tile: thin bricks, thick mud mortar
+  const AB = courses(N, 16, 110, 140, 311), ach = N / 16;
+  const adobe = triTex(N, (i, j) => {
+    const row = Math.floor(j / ach), y = j - row * ach, [dx, k] = jointDist(AB[row], i, N), inB = y > 4 && y < ach - 5 && dx > 4, e = Math.min(y - 4, ach - 5 - y, dx - 4);
+    const tone = 0.9 + 0.15 * h2(row, k, 312), n = tfbm(i, j, 0.08, 313, N);
+    const c = inB ? [0.72 * tone, 0.55 * tone, 0.38 * tone].map(x => x * (0.86 + 0.2 * n)) : [0.62, 0.48, 0.34].map(x => x * (0.85 + 0.2 * n));
+    return { c, b: inB ? 0.45 + 0.35 * SS(0, 5, e) + 0.1 * n : 0.15, r: 0.96 };
+  });
+  // desert floor, 4 m tile: red-ochre packed sand, gravel, faint wind streaks
+  const desert = triTex(N, (i, j) => {
+    const n = tfbm(i, j, 0.015, 321, N), st = tfbm(i * 0.3, j * 2, 0.02, 322, N), v = voro(i, j, N, 44, 323), peb = 0.55 * SS(0.12, 0.05, v.f1 / v.cs) * SS(0.7, 0.78, v.id);
+    const c = [0.8, 0.62, 0.44].map(x => x * (0.86 + 0.16 * n + 0.04 * st)).map((x, q) => x * (1 - peb) + peb * [0.52, 0.44, 0.38][q]);
+    return { c, b: 0.45 + 0.1 * st + 0.08 * n + 0.3 * peb, r: 0.97 };
+  });
+  // dressed stone (channel kerbs, spout), 1.2 m tile: pale grey-buff, fine tooling
+  const stone = triTex(N, (i, j) => { const n = tfbm(i, j, 0.04, 331, N), m = tfbm(i, j, 0.25, 332, N); return { c: [0.74, 0.69, 0.6].map(x => x * (0.88 + 0.16 * n)), b: 0.5 + 0.1 * m, r: 0.8 + 0.1 * n }; });
+  _PT = { kahgel, adobe, desert, stone };
+  return _PT;
+}
+// world-scale UVs on every textured mesh of a builder (scale baked in temporarily), skipping meshes already done
+function uvAllP(g, tile) {
+  g.traverse(o => { if (!o.isMesh || o.isInstancedMesh || o.userData.uvDone || !o.material || !o.material.map) return;
+    o.geometry = o.geometry.clone(); const sc = new THREE.Matrix4().makeScale(o.scale.x, o.scale.y, o.scale.z);
+    o.geometry.applyMatrix4(sc); worldUV(o.geometry, tile); o.geometry.applyMatrix4(sc.invert()); o.userData.uvDone = true; });
+}
 
 SKY_PRESETS.night = { zenith: 0x060c22, horizon: 0x24345e, ground: 0x15161c, sunColor: 0xa8bcff, cloud: 0.12, haze: 0x1a2244, sunI: 1.1 };
 SKY_PRESETS.desert = { zenith: 0x2a6fd0, horizon: 0xe9d7b0, ground: 0xb08a5a, sunColor: 0xfff0d0, cloud: 0.12, haze: 0xe6d3ad, sunI: 4.6 };
@@ -14,44 +57,41 @@ SKY_PRESETS.winter = { zenith: 0x3a68b0, horizon: 0xc9d4de, ground: 0x8a7a62, su
 let PM = null;
 export function persiaMats() {
   if (PM) return PM;
-  const mud = canvasTex(256, 256, (x) => {
-    x.fillStyle = '#b98e5e'; x.fillRect(0, 0, 256, 256); const R = rng(3);
-    for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${90 + R() * 60},${60 + R() * 40},${30 + R() * 20},${R() * 0.18})`; x.beginPath(); x.arc(R() * 256, R() * 256, 1 + R() * 9, 0, 7); x.fill(); }
-    x.strokeStyle = 'rgba(70,45,20,0.25)'; for (let i = 0; i < 40; i++) { x.beginPath(); const y0 = R() * 256; x.moveTo(R() * 256, y0); x.lineTo(R() * 256, y0 + (R() - 0.5) * 20); x.stroke(); }
-  }, [14, 7]);
-  const sand = canvasTex(256, 256, (x) => {
-    x.fillStyle = '#d9b47e'; x.fillRect(0, 0, 256, 256); const R = rng(9);
-    for (let i = 0; i < 1400; i++) { x.fillStyle = `rgba(${150 + R() * 80},${110 + R() * 60},${60 + R() * 40},${R() * 0.25})`; x.fillRect(R() * 256, R() * 256, 1 + R() * 2, 1 + R() * 2); }
-  }, [60, 60]);
-  PM = {
-    mud: new THREE.MeshStandardMaterial({ map: mud, roughness: 0.95, bumpMap: mud, bumpScale: 3 }),
-    mudCut: new THREE.MeshStandardMaterial({ color: 0x9a7048, roughness: 1, bumpMap: fabricTexture(61), bumpScale: 4, side: THREE.DoubleSide }),
-    mudIn: new THREE.MeshStandardMaterial({ color: 0x8a6440, roughness: 1, side: THREE.BackSide }),
-    sand: new THREE.MeshStandardMaterial({ map: sand, color: 0xffffff, roughness: 1 }),
+  const t = persiaTex();
+  PM = { // v1.5: code-made kahgel, adobe, desert and stone (same keys as before, plus adobe/stone/wood)
+    mud: std(t.kahgel, { bumpScale: 2.5 }),
+    mudCut: std(t.adobe, { bumpScale: 3, side: THREE.DoubleSide }),
+    mudIn: std(t.kahgel, { color: 0xb8a088, bumpScale: 2, side: THREE.BackSide }),
+    sand: std(t.desert, { bumpScale: 2.5 }),
     ice: new THREE.MeshPhysicalMaterial({ color: 0xcfeeff, roughness: 0.06, metalness: 0, transmission: 0.85, ior: 1.31, thickness: 0.4, clearcoat: 1, attenuationColor: new THREE.Color(0x9fd8ff), attenuationDistance: 0.6, emissive: 0x1a4a6a, emissiveIntensity: 0.12 }),
-    dark: new THREE.MeshStandardMaterial({ color: 0x1c140c, roughness: 1 }),
+    dark: new THREE.MeshStandardMaterial({ color: 0x2a1e14, roughness: 1 }),
+    adobe: std(t.adobe, { bumpScale: 3 }), stone: std(t.stone, { bumpScale: 1.2 }),
+    wood: romanMats().wood, metal: new THREE.MeshStandardMaterial({ color: 0x3a3a3c, roughness: 0.4, metalness: 0.8 }),
   };
   return PM;
 }
 
 export function desertGround(scene, { y = 0, dunes = true, seed = 1, half = false } = {}) {
   const M = persiaMats();
-  const g = half ? new THREE.Mesh(new THREE.PlaneGeometry(1000, 500), M.sand) : new THREE.Mesh(new THREE.CircleGeometry(500, 96), M.sand); g.rotation.x = -Math.PI / 2; g.position.y = y; if (half) g.position.z = -250; g.receiveShadow = true; scene.add(g);
+  const g = half ? new THREE.Mesh(worldUV(new THREE.PlaneGeometry(1000, 500), 4), M.sand) : new THREE.Mesh(worldUV(new THREE.CircleGeometry(500, 96), 4), M.sand); g.rotation.x = -Math.PI / 2; g.position.y = y; if (half) g.position.z = -250; g.receiveShadow = true; scene.add(g);
   if (dunes) {
     const R = rng(seed);
-    const dm = new THREE.MeshStandardMaterial({ color: 0xd2a96f, roughness: 1 });
+    const dm = M.sand; const duneG = new THREE.Group(); scene.add(duneG);
     for (let i = 0; i < 26; i++) {
       const a = half ? Math.PI * (1.1 + R() * 0.8) : R() * Math.PI * 2, r = 60 + R() * 160, s = 10 + R() * 26;
       const d = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), dm);
-      d.scale.set(s * 1.6, s * (0.12 + R() * 0.12), s); d.position.set(Math.cos(a) * r, y - 0.2, Math.sin(a) * r); d.rotation.y = R() * 3; scene.add(d);
+      d.scale.set(s * 1.6, s * (0.12 + R() * 0.12), s); d.position.set(Math.cos(a) * r, y - 0.2, Math.sin(a) * r); d.rotation.y = R() * 3; duneG.add(d);
     }
+    uvAllP(duneG, 4);
     // far rocky mountains
     const mm = new THREE.MeshStandardMaterial({ color: 0x9a7a5e, roughness: 1 });
     for (let i = 0; i < 14; i++) { const a = -2.4 + i * 0.12 + R() * 0.05, r = 260 + R() * 60, h = 25 + R() * 35; const m = new THREE.Mesh(new THREE.ConeGeometry(h * 1.6, h, 7), mm); m.position.set(Math.sin(a) * r, y + h / 2 - 3, -Math.cos(a) * r); m.rotation.y = R() * 3; scene.add(m); }
   }
   return g;
 }
-export function palm(h = 4, seed = 1) {
+// v1.5: the Nile set's date palm (hundreds of leaflets, swaying in the wind); the old flat-frond palm below is kept as palmOld
+export function palm(h = 4, seed = 1) { return nilePalm(Math.max(3, h * 1.4), seed); }
+export function palmOld(h = 4, seed = 1) {
   const R = rng(seed); const g = new THREE.Group();
   const tm = new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.9, bumpMap: fabricTexture(5), bumpScale: 4 });
   const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.3, h * 0.5, 0), new THREE.Vector3(0.15, h, 0));
@@ -80,7 +120,7 @@ function domeProfile(R, H, steps = 9, inner = 0) {
 // whole yakhchal: stepped dome over a ring wall, small vent at the top, entrance arch
 export function yakhchal({ R = 9, H = 18 } = {}) {
   const M = persiaMats(); const g = new THREE.Group();
-  const dome = new THREE.Mesh(new THREE.LatheGeometry(domeProfile(R, H), 72), M.mud); g.add(dome);
+  const dome = new THREE.Mesh(cylUV(new THREE.LatheGeometry(domeProfile(R, H), 72), 2.4), M.mud); dome.userData.uvDone = true; g.add(dome);
   const vent = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.6, 16, 1, true), M.mud); vent.position.y = H + 0.1; g.add(vent);
   const ventHole = new THREE.Mesh(new THREE.CircleGeometry(0.45, 16), M.dark); ventHole.rotation.x = -Math.PI / 2; ventHole.position.y = H + 0.38; g.add(ventHole);
   const ring = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.8, R + 1.0, 1.2, 72), M.mud); ring.position.y = 0.6; g.add(ring);
@@ -88,6 +128,7 @@ export function yakhchal({ R = 9, H = 18 } = {}) {
   const porch = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 2.2), M.mud); porch.position.set(0, 1.5, R + 0.6); g.add(porch);
   const door = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.0), M.dark); door.position.set(0, 1.0, R + 1.71); g.add(door);
   const arch = new THREE.Mesh(new THREE.CircleGeometry(0.55, 16, 0, Math.PI), M.dark); arch.position.set(0, 2.0, R + 1.71); g.add(arch);
+  uvAllP(g, 2.4);
   return shadowAll(g);
 }
 // cut-away yakhchal: half dome (thick wall with a cut face), deep pit, ice blocks, trench
@@ -95,8 +136,8 @@ export function yakhchalCut({ R = 9, H = 18, wall = 2.0, pit = 6 } = {}) {
   const M = persiaMats(); const g = new THREE.Group();
   const out = domeProfile(R, H), inn = domeProfile(R, H, 9, wall).map((v, i) => new THREE.Vector2(Math.max(0.3, v.x - (wall * 0.6) * (v.y / H)), v.y));
   const half = Math.PI; // back half only (camera sees the inside from +z)
-  const o = new THREE.Mesh(new THREE.LatheGeometry(out, 72, Math.PI / 2, half), M.mud); g.add(o);
-  const i = new THREE.Mesh(new THREE.LatheGeometry(inn, 72, Math.PI / 2, half), M.mudIn); g.add(i);
+  const o = new THREE.Mesh(cylUV(new THREE.LatheGeometry(out, 72, Math.PI / 2, half), 2.4), M.mud); o.userData.uvDone = true; g.add(o);
+  const i = new THREE.Mesh(cylUV(new THREE.LatheGeometry(inn, 72, Math.PI / 2, half), 2.4), M.mudIn); i.userData.uvDone = true; g.add(i);
   // cut faces (two side sections): build a shape between outer and inner profiles
   const sh = new THREE.Shape(); sh.moveTo(out[0].x, out[0].y); out.forEach(v => sh.lineTo(v.x, v.y)); [...inn].reverse().forEach(v => sh.lineTo(v.x, v.y)); sh.lineTo(out[0].x, out[0].y);
   for (const s of [1, -1]) { const f = new THREE.Mesh(new THREE.ShapeGeometry(sh), M.mudCut); f.scale.x = s; g.add(f); }
@@ -121,6 +162,7 @@ export function yakhchalCut({ R = 9, H = 18, wall = 2.0, pit = 6 } = {}) {
   g.userData.blocks = blocks;
   g.setFill = (k) => { const n = Math.floor(k * blocks.length); blocks.forEach((b, i) => b.visible = i < n); };
   g.setFill(1);
+  uvAllP(g, 1.0);
   shadowAll(g);
   return g;
 }
@@ -130,6 +172,7 @@ export function shadeWall(L = 40, H = 10, T = 1.2) {
   const w = new THREE.Mesh(new THREE.BoxGeometry(L, H, T), M.mud); w.position.y = H / 2; g.add(w);
   for (let i = 0; i <= 8; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(1.0, H * 0.85, 1.6), M.mud); b.position.set(-L / 2 + i * L / 8, H * 0.425, -T / 2 - 0.6); g.add(b); }
   const crest = new THREE.Mesh(new THREE.BoxGeometry(L, 0.4, T + 0.3), M.mud); crest.position.y = H + 0.2; g.add(crest);
+  uvAllP(g, 2.4);
   return shadowAll(g);
 }
 // shallow channel: long pool whose surface goes from water to ice by freeze k (0..1)
@@ -156,6 +199,7 @@ export function freezeChannel(L = 36, W = 3, { seed = 4 } = {}) {
   const water = new THREE.Mesh(new THREE.PlaneGeometry(L, W), mat); water.rotation.x = -Math.PI / 2; water.position.y = 0.33; g.add(water);
   g.set = (freeze, fill = 1) => { U.uFreeze.value = freeze; U.uFill.value = fill; water.scale.x = Math.max(0.001, fill); water.position.x = -L / 2 * (1 - fill); water.visible = fill > 0.002; };
   g.set(0, 1);
+  uvAllP(g, 2.4);
   shadowAll(g); water.castShadow = false;
   return g;
 }
@@ -167,6 +211,7 @@ export function qanatLine(n = 9, { from = [-60, 0, -80], to = [-4, 0, -2] } = {}
     const m = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.55, 10, 20), M.mud); m.rotation.x = Math.PI / 2; m.scale.z = 0.6; m.position.set(x, 0.15, z); g.add(m);
     const hole = new THREE.Mesh(new THREE.CircleGeometry(0.5, 16), M.dark); hole.rotation.x = -Math.PI / 2; hole.position.set(x, 0.2, z); g.add(hole);
   }
+  uvAllP(g, 2.4);
   return shadowAll(g);
 }
 // Persian worker: tunic + skull cap, darker skin
@@ -237,4 +282,81 @@ export function faloodeh() {
   const syrup = new THREE.Mesh(new THREE.SphereGeometry(0.06, 24, 8, 0, Math.PI * 2, 0, 0.6), new THREE.MeshStandardMaterial({ color: 0xc83a5a, roughness: 0.15, transparent: true, opacity: 0.75 })); syrup.scale.set(1, 0.4, 1); syrup.position.set(-0.01, 0.17, 0.01); g.add(syrup);
   const lime = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 10, 0, Math.PI), new THREE.MeshStandardMaterial({ color: 0x9ac840, roughness: 0.5, side: THREE.DoubleSide })); lime.position.set(0.075, 0.18, 0.03); lime.rotation.set(0.3, 0.5, 0.8); g.add(lime);
   return shadowAll(g);
+}
+
+// ---------- v1.5: a Yazd lane ----------
+// x runs along the lane. Kahgel walls at |z| = PS.half (4 m apart, 4.5-5.5 m tall) with wooden doors in arched niches,
+// small windows, windcatchers (badgir: tall towers with slatted vents) above the roofs, a dome; a stone jub (open water
+// channel) along the far wall carrying qanat water towards -x, fed by a stone spout in the wall at x = 0; a yakhchal and
+// palms beyond. 1 unit = 1 m. persiaHeightAt(x, z) is the walkable top.
+export const PS = { half: 2.0, X: 16, jubZ: -1.45, jubW: 0.34, kerb: 0.12, kerbH: 0.2, waterY: 0.14, spoutY: 1.5, spoutX: 0 };
+export function persiaHeightAt(x, z) {
+  if (Math.abs(z - PS.jubZ) < PS.jubW / 2 + PS.kerb) return PS.kerbH; // the channel's kerbs (the water is below, inside)
+  return 0;
+}
+// a windcatcher: square tower with tall vent slots and fins on all four faces, a flat cap
+function windcatcher(M, h = 5, w = 1.8, d = 1.3) {
+  const g = new THREE.Group();
+  g.add(block(w, h, d, M.mud, { r: 0.03, at: [0, h / 2, 0] }));
+  const sh = h * 0.42, sy = h - 0.35 - sh / 2;
+  for (const [ax, len, off] of [['z', w, d / 2], ['z', w, -d / 2], ['x', d, w / 2], ['x', d, -w / 2]]) {
+    const n = Math.max(2, Math.round(len / 0.32)); // vent slots separated by thin fins
+    for (let k = 0; k < n; k++) { const c = -len / 2 + (k + 0.5) * len / n, sw = len / n * 0.62;
+      const slot = ax === 'z' ? block(sw, sh, 0.06, M.dark, { r: 0.004, at: [c, sy, off + Math.sign(off) * 0.005] }) : block(0.06, sh, sw, M.dark, { r: 0.004, at: [off + Math.sign(off) * 0.005, sy, c] }); g.add(slot); }
+  }
+  g.add(block(w + 0.2, 0.18, d + 0.2, M.mud, { r: 0.03, at: [0, h + 0.09, 0] }));
+  return g;
+}
+export function persiaSite({ seed = 5 } = {}) {
+  const M = persiaMats(), g = new THREE.Group(), R = rng(seed), props = [], ground = [], updaters = [], X = PS.X, H = PS.half;
+  // ground: the lane and the desert beyond (dunes and far mountains from desertGround)
+  const ground0 = desertGround(g, { y: 0, dunes: true, seed: seed + 1 }); g.add(ground0); ground.push(ground0);
+  // walls: house fronts on both sides with doors, windows; a dome and windcatchers above
+  const house = (x0, x1, side, h) => {
+    const L = x1 - x0, zc = side * (H + 0.35);
+    g.add(block(L, h, 0.7, M.mud, { r: 0.03, at: [(x0 + x1) / 2, h / 2 - 0.05, zc] }));
+    if (R() < 0.5) g.add(block(L * 0.5, 0.9, 0.04, M.adobe, { r: 0.004, at: [(x0 + x1) / 2 + (R() - 0.5) * L * 0.3, 0.5 + R() * 2, side * (H - 0.005)] })); // plaster worn back to the adobe
+    if (L > 3.2) { const dx = x0 + 1.2 + R() * (L - 2.4);
+      g.add(block(1.5, 2.7, 0.12, M.dark, { r: 0.01, at: [dx, 1.3, side * (H + 0.02)] }));           // arched niche (dark)
+      const arch = new THREE.Mesh(new THREE.CircleGeometry(0.75, 24, 0, Math.PI), M.dark); arch.position.set(dx, 2.65, side * (H - 0.045)); arch.rotation.y = side < 0 ? 0 : Math.PI; g.add(arch);
+      for (const s2 of [-1, 1]) g.add(block(0.5, 2.0, 0.08, M.wood, { r: 0.01, tile: 1.2, at: [dx + s2 * 0.26, 1.0, side * (H - 0.03)] })); // double wooden door
+      g.add(block(0.04, 0.12, 0.05, M.metal, { r: 0.01, at: [dx - 0.08, 1.3, side * (H - 0.09)] })); g.add(block(0.04, 0.12, 0.05, M.metal, { r: 0.01, at: [dx + 0.08, 1.3, side * (H - 0.09)] }));
+      g.add(block(0.5, 0.5, 0.06, M.dark, { r: 0.004, at: [dx + (R() < 0.5 ? -1 : 1) * 1.4, 3.6, side * (H + 0.005)] })); }
+  };
+  for (const side of [-1, 1]) { let x = -X - 1; while (x < X + 1) { const x1 = Math.min(X + 1, x + 4 + R() * 3); house(x, x1, side, 4.5 + R()); x = x1 + 0.03; } }
+  g.add(block(0.7, 5.2, 2 * H + 1.4, M.mud, { r: 0.03, at: [-X - 1.35, 2.55, 0] })); // a house closing the far end
+  for (const [x, side, h] of [[-6, -1, 5.5], [3.2, 1, 5], [-13, -1, 6], [9, -1, 4.5]]) { const wc = windcatcher(M, h); wc.position.set(x, 4.9, side * (H + 1.6)); g.add(wc); }
+  { const dome = new THREE.Mesh(cylUV(new THREE.SphereGeometry(2.6, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2), 2.4), M.mud); dome.userData.uvDone = true; dome.position.set(-9.5, 5.0, H + 3.2); g.add(dome); }
+  const yk = yakhchal({ R: 7, H: 14 }); yk.position.set(-34, 0, -32); g.add(yk);
+  for (let k = 0; k < 6; k++) { const p = palm(4 + R() * 2.5, k + 11); p.position.set(-X + R() * 2 * X, 0, (R() < 0.5 ? -1 : 1) * (H + 4 + R() * 6)); g.add(p); p.traverse(o => { if (o.isInstancedMesh) o.userData.noGround = true; }); }
+  // the jub: stone floor and kerbs, flowing water; the spout in the wall and its stream (into the jub unless something is under it)
+  const jz = PS.jubZ, jw = PS.jubW;
+  g.add(block(2 * X + 2, 0.04, jw + 2 * PS.kerb, M.stone, { r: 0.004, tile: 1.2, at: [0, 0.02, jz] }));
+  for (const s2 of [-1, 1]) { const k = block(2 * X + 2, PS.kerbH, PS.kerb, M.stone, { r: 0.012, tile: 1.2, at: [0, PS.kerbH / 2, jz + s2 * (jw / 2 + PS.kerb / 2)] }); g.add(k); ground.push(k); }
+  const LAND = [PS.spoutX, jz + 0.02];
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, jw, 1, 1).rotateX(-Math.PI / 2), flowWaterMaterial({ color: 0x3a5048, flow: [-1, 0], speed: 0.7, scale: 10, impacts: [LAND], env: 0.7 }));
+  water.position.set(0, PS.waterY, jz); g.add(water);
+  { const sp = block(0.34, 0.16, 0.62, M.stone, { r: 0.02, tile: 1.2, at: [PS.spoutX, PS.spoutY, -H + 0.26] }); g.add(sp);
+    g.add(block(0.08, 0.03, 0.6, M.dark, { r: 0.006, at: [PS.spoutX, PS.spoutY + 0.075, -H + 0.27] })); } // the groove
+  const spoutLip = new THREE.Vector3(PS.spoutX, PS.spoutY + 0.05, -H + 0.56);
+  const sm = streamMaterial({ speed: 10, breakup: 0.85, taper: 0.004 }), stream = new THREE.Mesh(new THREE.BufferGeometry(), sm); stream.castShadow = false; stream.userData.noGround = true; g.add(stream);
+  const spl = splash(new THREE.Vector3(LAND[0], PS.waterY + 0.004, LAND[1]), { surfaceY: PS.waterY, n: 20, size: 0.004, spread: 0.35, up: 0.7 }); g.add(spl);
+  // the stream leaves the lip with a little forward speed and falls to `stopY` (the water, or a jar's mouth)
+  const flowTo = (stopY) => { const v0 = 0.35, pts = []; const T = Math.sqrt(2 * Math.max(0.01, spoutLip.y - stopY) / 9.8);
+    for (let i = 0; i <= 20; i++) { const tt = T * i / 20; pts.push(new THREE.Vector3(spoutLip.x, spoutLip.y - 4.9 * tt * tt, spoutLip.z + v0 * tt)); } return pts; };
+  const streamAt = (stopY) => { stream.geometry.dispose(); stream.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(flowTo(stopY)), 32, 0.013, 10, false); };
+  streamAt(PS.waterY);
+  // weeds at the wall bases
+  const gs = []; for (let i = 0; i < 90; i++) { const x = (R() - 0.5) * 2 * X, z = R() < 0.5 ? H - 0.05 - R() * 0.1 : -(H - 0.05 - R() * 0.1); if (z < 0) continue; gs.push([x, -0.005, z, 0.35 + R() * 0.35]); }
+  g.add(grass(gs, { h: 0.25, seed: 41, color: 0xd8d0a0 }));
+  shadowAll(g); water.castShadow = false; stream.castShadow = false;
+  g.updateMatrixWorld(true); const rc = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0);
+  const groundAt = (x, z) => { for (const m of ground) m.updateMatrixWorld(); rc.set(new THREE.Vector3(x, 30, z), DOWN); const h = rc.intersectObjects(ground, false)[0]; return h ? h.point.y : persiaHeightAt(x, z); };
+  g.userData = { ground, props, heightAt: persiaHeightAt, groundAt, spoutLip, streamTo: streamAt, splash: spl, landY: PS.waterY, jubWater: water.material,
+    update: (t) => { spl.update(t); updaters.forEach(u => u(t)); } };
+  return g;
+}
+// a Persian worker: the v1.1 character in a belted tunic and a white cap (the cap drawn as pale cloth)
+export function persianWorker2({ color = 0x4a5e86, cap = 0xf0ece2, skin = 0x9a6644 } = {}) {
+  return toon({ skin, cloth: color, belt: 0x6a4a2a, hair: cap, outfit: 'tunic' });
 }

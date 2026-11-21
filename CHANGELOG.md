@@ -3,6 +3,16 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.5.0 (21 Nov 2026) = commit 167a87133dcf28fa0befcbb72899882f1eacbf04
+Persia set (backlog item 2, fourth set). The channels stay on v1.0.0 until the owner moves them.
+
+- `persia.js`: code-made kahgel, adobe, desert and stone (`persiaMats`, same keys plus adobe/stone/wood/metal); the
+  builders (yakhchal whole and cut-away, shade wall, freezing channel, qanat wells, desert ground) upgraded with round and
+  world-scale UVs (same API); `palm()` returns the Nile set's swaying palm (`palmOld` kept); `persiaSite()` (a Yazd lane:
+  windcatchers, doors in arched niches, dome, yakhchal, palms, a jub fed by a stone spout) and `persianWorker2()`.
+- `water.js`: `flowWaterMaterial` impact strength (`userData.uImp`) so rings and foam fade when nothing lands.
+- `indus.js` exports `cylUV`. Test scene `shots_pe.js`.
+
 ## v1.4.0 (21 Nov 2026) = commit 6a5d0370935029151622b25347aef37ac572ed8c
 Egypt set (backlog item 2, third set). The channels stay on v1.0.0 until the owner moves them.
 

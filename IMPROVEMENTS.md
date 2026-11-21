@@ -21,8 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.4.0 is released (item 2: Egypt), waiting for the owner's verdict. v1.3.1 (water; the owner likes it) and v1.3.0 (Indus)
-before it.
+v1.5.0 is released (item 2: Persia), waiting for the owner's verdict. Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were
+liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
@@ -56,7 +56,7 @@ Shipped in v1.0.0:
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
-   *(Item 2 under way: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0; Persia and the farm still to do.)*
+   *(Item 2 under way: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0, Persia v1.5.0; the farm (`farm2.js`) still to do.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -125,3 +125,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   (Egypt): materials, upgraded builders, `egyptSite`, a pouring scene with a wet patch. QA caught a pyramid that read as
   a wall (too close), polka-dot sand again, a wet patch that read as a glowing puddle, and a wet patch never added to the
   scene (a swallowing comment, now caught by `swallow_scan.py`).
+- **21 Nov 2026 (cont.):** Owner happy with Egypt; carried on with Persia (v1.5.0): kahgel/adobe/desert/stone materials,
+  upgraded builders, a Yazd lane with windcatchers and a jub fed by a spout, a worker filling a jar. QA caught a close-up
+  shot from behind the worker (his back filled the frame), the jar's water disc poking through its neck, and a held jar
+  listed as a grounded prop.
