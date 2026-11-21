@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Code-made outdoor ambience for test scenes (free, no samples): soft wind, optional cicadas and a few distant birds,
-plus optional one-shot WAVs placed at given times (e.g. an earshot whoosh on a cut).
-usage: make_ambience.py out.wav DURATION [--cicadas] [--birds N] [--seed S] [--at time:file.wav[:gain_db]] ...
+running water and a pour (v1.10), plus optional one-shot WAVs placed at given times (e.g. an earshot whoosh on a cut).
+usage: make_ambience.py out.wav DURATION [--cicadas] [--birds N] [--water G] [--pour G] [--seed S] [--at time:file.wav[:gain_db]] ...
 Writes 48 kHz stereo, peak-normalised to -3 dBFS (master to -14 LUFS afterwards, e.g. the Kaggle job does)."""
 import sys, numpy as np
 from scipy.signal import butter, sosfilt
@@ -25,6 +25,22 @@ for c in range(2):
 if '--cicadas' in args:
     z = bp(rng.standard_normal(n), 4200, 6800, 3) * (0.55 + 0.45 * np.sign(np.sin(2 * np.pi * 42 * t))) * (0.6 + 0.4 * lfo(0.21, 0.5))
     z = 0.09 * z / (np.abs(z).max() + 1e-9); mix[:, 0] += z * 0.8; mix[:, 1] += z * 0.5
+# running water (--water G: a channel or a stream, gain 0..1): band-passed noise with a fast bubbling flutter, plus
+# little plinks of drops; a pour (--pour G) is brighter and steadier, like water falling into water
+for key, lo, hi, flut in (('--water', 350, 2600, 9.0), ('--pour', 700, 5200, 23.0)):
+    if key not in args: continue
+    gain = float(args[args.index(key) + 1])
+    for c in range(2):
+        r = np.random.default_rng(seed * 7 + c + len(key))
+        bub = np.abs(lp(r.standard_normal(n), flut * 3)); bub = bub / (bub.max() + 1e-9)
+        wv = bp(r.standard_normal(n), lo, hi, 2) * (0.35 + 0.65 * bub)
+        mix[:, c] += 0.32 * gain * wv / (np.abs(wv).max() + 1e-9)
+    if key == '--water':
+        r = np.random.default_rng(seed * 11)
+        for k in range(int(dur * 6)):
+            i0 = int(r.uniform(0, dur - 0.1) * SR); L = int(r.uniform(0.02, 0.05) * SR); tt = np.arange(L) / SR; f = r.uniform(900, 2400)
+            pl = np.sin(2 * np.pi * f * (1 + 2.5 * tt) * tt) * np.exp(-tt * 70) * 0.05 * gain; pan = r.uniform(0.2, 0.8)
+            mix[i0:i0 + L, 0] += pl * (1 - pan); mix[i0:i0 + L, 1] += pl * pan
 # birds: short chirps (falling or rising sweeps with a little vibrato), far away and panned
 for k in range(nb):
     t0 = rng.uniform(0.2, max(0.3, dur - 0.5)); f0 = rng.uniform(2600, 4200); notes = rng.integers(2, 5); pan = rng.uniform(0.2, 0.8)

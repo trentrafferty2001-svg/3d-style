@@ -21,8 +21,10 @@ session log at the bottom, then commit.
 
 ## Status (21 Nov 2026)
 
-v1.9.0 is released (item 4: rope and cloth), waiting for the owner's verdict; v1.8.0 (item 3: hands) and v1.7.0 (item 1:
-lip-sync) before it. These were the three the owner asked for on 21 Nov; ask the owner for the next item.
+Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
+(item 5: caustics) is released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
+before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. Next: item 8
+(crowds), then item 9 (speed).
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
@@ -71,7 +73,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 4. *(Done in v1.9.0: `sim.js` bakeRope/bakeHem, `probe_simrope.mjs`.)* **Rope and cloth as real simulation.** A verlet chain for ropes (sag, swing, slack when let go) and a baked
    cloth table for the kilt hem, both simulated once at build time so frames stay pure functions of time.
    *Proof:* probes for rope through hands or bucket, pop scan.
-5. **Water interaction.** Impact ripple rings, splash particles and spray, caustics on the shallows, and wet
+5. *(Done: rings, foam, splash and wet ground in v1.3.1-v1.4.0; caustics in v1.10.0.)* **Water interaction.** Impact ripple rings, splash particles and spray, caustics on the shallows, and wet
    darkening that dries over time. *Proof:* dense stills around the splash, no bloom haze.
 6. **Light and grade.** Sky environment lighting (PMREM) for softer fill, a rim light for the character, a gentle
    film look (subtle grain, vignette, one shared colour grade), and optional god rays.
@@ -156,3 +158,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   kilt, wrists bent 83 degrees (rope along the forearms: elbows now out), the rope coiled round a sandal, collision
   pushes that flung the rope or let it creep 1.3 m, and feet that skated on the sand (now planted in world space).
   Item 10 started alongside: `scripts/qa.py` runs every applicable check in one command.
+- **22 Nov 2026 (overnight):** Item 5 finished with caustics (v1.10.0): `causticsMaterial()` on the jub floor, see-through
+  jub water, running water and pour sounds in `make_ambience.py`, a midday jub test scene. QA found the jub in the wall's
+  shadow (no caustics: a dedicated scene with the sun along the channel), opaque water hiding the bed, and two looks that
+  didn't read as caustics (worms, then cracked tiles) before the curved, uneven net.

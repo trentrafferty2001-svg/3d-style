@@ -9,7 +9,7 @@ import { cap } from './props60.js';
 import { triTex, tfbm, voro, courses, jointDist, h2, std, worldUV, block, settle, smoothstepAB as SS, romanMats } from './roman.js';
 import { fbm, grass, palm as nilePalm } from './nile.js';
 import { cylUV } from './indus.js';
-import { flowWaterMaterial, streamMaterial, splash } from './water.js';
+import { flowWaterMaterial, streamMaterial, splash, causticsMaterial } from './water.js';
 import { toon } from './toon.js';
 
 // ---------- v1.5 textures: kahgel, adobe brick, desert floor, dressed stone ----------
@@ -331,10 +331,10 @@ export function persiaSite({ seed = 5 } = {}) {
   for (let k = 0; k < 6; k++) { const p = palm(4 + R() * 2.5, k + 11); p.position.set(-X + R() * 2 * X, 0, (R() < 0.5 ? -1 : 1) * (H + 4 + R() * 6)); g.add(p); p.traverse(o => { if (o.isInstancedMesh) o.userData.noGround = true; }); }
   // the jub: stone floor and kerbs, flowing water; the spout in the wall and its stream (into the jub unless something is under it)
   const jz = PS.jubZ, jw = PS.jubW;
-  g.add(block(2 * X + 2, 0.04, jw + 2 * PS.kerb, M.stone, { r: 0.004, tile: 1.2, at: [0, 0.02, jz] }));
+  g.add(block(2 * X + 2, 0.04, jw + 2 * PS.kerb, causticsMaterial(M.stone, { waterY: PS.waterY, flow: [-1, 0], scale: 6, speed: 0.3, strength: 2.4 }), { r: 0.004, tile: 1.2, at: [0, 0.02, jz] })); // caustics on the floor under the clear water
   for (const s2 of [-1, 1]) { const k = block(2 * X + 2, PS.kerbH, PS.kerb, M.stone, { r: 0.012, tile: 1.2, at: [0, PS.kerbH / 2, jz + s2 * (jw / 2 + PS.kerb / 2)] }); g.add(k); ground.push(k); }
   const LAND = [PS.spoutX, jz + 0.02];
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, jw, 1, 1).rotateX(-Math.PI / 2), flowWaterMaterial({ color: 0x3a5048, flow: [-1, 0], speed: 0.7, scale: 10, impacts: [LAND], env: 0.7 }));
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, jw, 1, 1).rotateX(-Math.PI / 2), flowWaterMaterial({ color: 0x3a5048, flow: [-1, 0], speed: 0.7, scale: 10, impacts: [LAND], env: 0.7, opacity: 0.62 }));
   water.position.set(0, PS.waterY, jz); g.add(water);
   { const sp = block(0.34, 0.16, 0.62, M.stone, { r: 0.02, tile: 1.2, at: [PS.spoutX, PS.spoutY, -H + 0.26] }); g.add(sp);
     g.add(block(0.08, 0.03, 0.6, M.dark, { r: 0.006, at: [PS.spoutX, PS.spoutY + 0.075, -H + 0.27] })); } // the groove

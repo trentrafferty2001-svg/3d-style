@@ -130,3 +130,36 @@ export function liveStream(material, { radius = 0.011, segments = 32 } = {}) {
   };
   return mesh;
 }
+
+// Caustics (v1.10): the bright, wavering web that sunlight focused by ripples draws on the floor of clear shallow water.
+// Patches a copy of a floor material: two layers of cells drift with the flow, and their edges (where two cells meet)
+// make the net. It is scaled by the sun's direct light on that spot, so shadows
+// keep it out, and it fades in under the water line (waterY) and out with depth. A pure function of TIME.
+export function causticsMaterial(mat, { waterY = 0, flow = [1, 0], scale = 7, speed = 0.35, strength = 1.6, depth = 0.6 } = {}) {
+  const m = mat.clone(), FL = `vec2(${(+flow[0]).toFixed(3)}, ${(+flow[1]).toFixed(3)})`;
+  m.customProgramCacheKey = () => `caustics_${waterY}_${scale}_${speed}_${strength}_${depth}_${flow}`;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = TIME;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPc;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWPc = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec3 vWPc; uniform float uTime;\n${NOISE}
+      // cellular caustics: bright lines where two cells meet (F2 - F1 small); the cell points circle slowly
+      float causCell(vec2 p, float t) { vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0;
+        for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 g = vec2(float(x), float(y)), h = vec2(hash12(i + g), hash12(i + g + 17.3));
+          vec2 o = 0.5 + 0.42 * sin(t * (0.6 + h) + 6.2831 * h); float d = length(g + o - f); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+        return exp(-(d2 - d1) * 9.0); }`)
+      .replace('#include <opaque_fragment>', `{
+        float dw = ${(+waterY).toFixed(3)} - vWPc.y;
+        float under = smoothstep(0.0, 0.015, dw) * exp(-max(dw, 0.0) / ${(+depth).toFixed(3)});
+        vec2 p = vWPc.xz * ${(+scale).toFixed(2)}; float t = uTime * ${(+speed).toFixed(3)} * ${(+scale).toFixed(2)};
+        vec2 w = vec2(vnoise(p * 0.45 + t * 0.2), vnoise(p * 0.45 - t * 0.2 + 5.0)) * 1.1   // wobble: no straight cell edges
+          + vec2(vnoise(p * 1.6 + t * 0.5 + 2.0), vnoise(p * 1.6 - t * 0.5 + 8.0)) * 0.32;
+        float c1 = causCell(p + w + ${FL} * t * 0.3, uTime * 1.3), c2 = causCell(p * 1.7 - w * 0.8 + 3.7 - ${FL} * t * 0.2, uTime * 1.7);
+        // the brightest light where both layers' lines cross, a faint net elsewhere, and uneven over the floor
+        float c = (pow(c1, 4.0) * 0.35 + pow(c1 * c2, 1.6) * 1.1) * (0.55 + 0.9 * vnoise(p * 0.3 + 11.0));
+        outgoingLight += reflectedLight.directDiffuse * c * ${(+strength).toFixed(2)} * under;
+      }
+      #include <opaque_fragment>`);
+  };
+  return m;
+}
