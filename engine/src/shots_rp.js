@@ -47,7 +47,7 @@ function poseHauler(F, t) {
 }
 // grip points on the rope while he holds it: both hands in front at belly height, rope running towards the sledge
 const grips = (F, t) => { const h = heave(t), w = (x, y, z) => F.root.localToWorld(V(x, y, z));
-  return [w(0.03, 0.99 - 0.02 * h, 0.24 - 0.02 * h), w(-0.02, 0.96 - 0.02 * h, 0.0 - 0.01 * h)]; }; // within reach while leaning back
+  return [w(0.03, 1.09 - 0.02 * h, 0.29 - 0.02 * h), w(-0.02, 1.07 - 0.02 * h, 0.13 - 0.01 * h)]; }; // within reach while leaning back, clear of the kilt
 
 function rig(makeStage) {
   const W = world(makeStage), S = W.site;
@@ -89,7 +89,7 @@ function rig(makeStage) {
     const fall = smooth(range(t, T_LET, T_LET + 0.5)), shake = Math.sin(t * 9) * 0.02 * smooth(range(t, T_LET + 0.9, T_LET + 1.3)) * (1 - smooth(range(t, T_LET + 2.0, T_LET + 2.4)));
     const holds = [], curl = { l: 0.5, r: 0.5 };
     for (const [s, sx, i, tl] of [['l', 1, I1, T_LET], ['r', -1, I2, T_LET + 1 / 30]]) {
-      if (t < tl) { holds.push({ F, s, cyl: segAt(i), opts: { u: 0.5, thumbTo: pts[0].clone().sub(pts[N - 1]), pole: w(sx * 0.45, 0.8, -0.4) } }); continue; }
+      if (t < tl) { holds.push({ F, s, cyl: segAt(i), opts: { u: 0.5, thumbTo: pts[0].clone().sub(pts[N - 1]), pole: w(sx * 0.75, 0.75, 0.05) } }); continue; } // elbows out to the sides (a tug-of-war grip): the rope crosses the fists instead of running along the forearms
       const k = smooth(range(t, tl, tl + 0.5)), from = grips(F, tl)[s === 'l' ? 0 : 1], rest = w(sx * 0.29, 0.86 + shake, 0.06);
       F.armIK(s, from.lerp(rest, k), w(sx * 0.45, 0.95, -0.7), side(sx).lerp(fwd, k).normalize()); curl[s] = 0.6 * (1 - k) + 0.12;   // the fist opens as the arm drops
     }

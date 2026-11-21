@@ -250,6 +250,12 @@ and run them from there (e.g. `cp scripts/probe_hands.mjs /home/claude/style2/ &
 
 ## QA before every final render (all must pass)
 
+**One command:** `python3 -I scripts/qa.py <shots_X.js> <out dir> [--impacts s,s]` (from the repo root) copies the
+engine, points it at the shot file and runs every check below that applies (the probes are chosen from what the shot
+sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`), then prints PASS/FAIL per check. `--quick` runs the probes
+and scans without the stills and preview. It still leaves two jobs to you: read every still, and run earshot on the
+final MP4.
+
 Run these from the engine folder (copy the scripts in; they need `?dbg`, which `shots_dm.js` honours):
 
 | Check | Tool | Pass |
