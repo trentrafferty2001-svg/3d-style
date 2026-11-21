@@ -3,6 +3,17 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.6.0 (21 Nov 2026) = commit PENDING
+Farm set: rice-fish paddies (backlog item 2, fifth and last set; item 2 is complete). The channels stay on v1.0.0 until
+the owner moves them.
+
+- `farm2.js`: code-made paddy materials (`farmMats`: wet mud, grassy dike earth, thatch, a far rice carpet, wood, hills),
+  `conicalHat(F)` and `paddyFarmer()`; `paddySite({ seed, impacts, clear })` (flooded plots between rounded dikes,
+  see-through water with rings at the shins, rice rows, stilted hut, broadleaf trees, hills, carp swimming in lanes; layout
+  in `FS`, `paddyHeightAt`); `clear` takes circles or boxes. The old builders (`riceClumps`, `carp`, ...) are unchanged.
+- `water.js`: `flowWaterMaterial` takes `opacity`. `roman.js`: `oliveGeo(seed, { cols, n, spread })` for other trees.
+- Test scene `shots_fa.js`.
+
 ## v1.5.0 (21 Nov 2026) = commit 167a87133dcf28fa0befcbb72899882f1eacbf04
 Persia set (backlog item 2, fourth set). The channels stay on v1.0.0 until the owner moves them.
 
