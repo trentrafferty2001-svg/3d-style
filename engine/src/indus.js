@@ -104,8 +104,9 @@ export function indusSite({ seed = 2 } = {}) {
   // drain: brick side walls (top flush), brick floor, flowing water, covers (one lifted, leaning on the wall)
   for (const s of [-1, 1]) { const w = block(2 * X + 2, 0.36, 0.12, M.brick, { r: 0.01, tile: 1.2, at: [0, 0.035 - 0.18, dz + s * (dw / 2 + 0.06)] }); g.add(w); ground.push(w); }
   g.add(block(2 * X + 2, 0.06, dw + 0.02, M.brick, { r: 0.005, tile: 1.2, at: [0, -0.33, dz] }));
-  const wm = waterMaterial({ color: 0x3d4a3a, opacity: 1, ripple: 1.4 }); wm.roughness = 0.12;
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, dw, 1, 1).rotateX(-Math.PI / 2), wm); water.position.set(0, -0.22, dz); g.add(water);
+  // water runs high in the channel so it shows through the open cover (lower down it sat in shadow below the sight line)
+  const WL = -0.1, wm = waterMaterial({ color: 0x5a6a55, opacity: 1, ripple: 1.4 }); wm.roughness = 0.1;
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, dw, 1, 1).rotateX(-Math.PI / 2), wm); water.position.set(0, WL, dz); g.add(water);
   const cw = 0.52, gap = [IS.gapX - cw / 2, IS.gapX + cw / 2];
   for (let x = -X - 1 + cw / 2; x < X + 1; x += cw) {
     if (Math.abs(x - IS.gapX) < cw / 2) continue;
@@ -155,10 +156,13 @@ export function indusSite({ seed = 2 } = {}) {
     for (let k = 0.08; k < 0.97; k += 0.16) { const p = curve.getPointAt(k), tg = curve.getTangentAt(k); const col = new THREE.Mesh(new THREE.TorusGeometry(0.074, 0.014, 8, 24), M.terracotta); col.position.copy(p); col.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tg); g.add(col); }
     const sw = waterMaterial({ color: 0x8a9a8a, opacity: 1, ripple: 2.5 }); sw.roughness = 0.1;
     // the stream: thin, pale and partly see-through, wavering a little (vertex wobble driven by time)
-    const sm = new THREE.MeshStandardMaterial({ color: 0xdde6e0, roughness: 0.15, transparent: true, opacity: 0.55, depthWrite: false });
+    const sm = new THREE.MeshStandardMaterial({ color: 0xcfe0d8, roughness: 0.12, transparent: true, opacity: 0.42, depthWrite: false });
     sm.customProgramCacheKey = () => 'indusStream';
-    sm.onBeforeCompile = (sh) => { sh.uniforms.uTime = TIME; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\n float fall = 0.26 - position.y; transformed.x += sin(uTime * 23.0 + position.y * 31.0) * 0.004 * fall; transformed.z += sin(uTime * 17.0 + position.y * 27.0 + 1.3) * 0.003 * fall;'); };
-    const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.014, 0.52, 10, 12, true), sm); stream.position.set(px, 0.3 - 0.26 - 0.02, dz - 0.02); stream.castShadow = false; g.add(stream);
+    sm.onBeforeCompile = (sh) => { sh.uniforms.uTime = TIME; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\n float fall = 0.2 - position.y; transformed.x += sin(uTime * 23.0 + position.y * 31.0) * 0.004 * fall; transformed.z += sin(uTime * 17.0 + position.y * 27.0 + 1.3) * 0.003 * fall;'); };
+    // a parabola from just inside the mouth's lower lip (water leaves along the pipe, +z, then falls) down into the water
+    const y0 = 0.3 - 0.045, z0 = dz - 0.07, v0 = 0.45, T = Math.sqrt(2 * (y0 - WL + 0.01) / 9.8), arc = [];
+    for (let i = 0; i <= 16; i++) { const tt = T * i / 16; arc.push(new THREE.Vector3(px, y0 - 4.9 * tt * tt, z0 + v0 * tt)); }
+    const stream = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc), 32, 0.011, 10, false), sm); stream.castShadow = false; g.add(stream);
     void sw; }
   // weeds along the wall bases and in the square's corners
   const gs = [];

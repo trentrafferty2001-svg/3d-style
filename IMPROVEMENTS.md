@@ -21,13 +21,14 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.2.0 is released (backlog item 2, first set: Rome); the owner liked the Roman test clip (21 Nov). v1.1.0
+v1.3.0 is released (item 2, second set: the Indus city for the Mohenjo-daro video), waiting for the owner's verdict.
+v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
 v1.2.0: a Roman street set (`roman.js`, `romanSite()`) with detailed code-made materials, fluted columns, rounded blocks,
 wind vegetation and amphorae, all grounded; a tunic outfit for the character; `rome.js`'s old builders upgraded in
 place; a bump-normal guard in `main.js` (edge-on sparkles) and two new QA tools (`probe_rome.mjs`, `sparkle_scan.py`).
-Next sets in item 2: `egypt.js`, then an Indus set for the Mohenjo-daro video, then `persia.js` and `farm2.js`.
+Next sets in item 2: `egypt.js`, then `persia.js` and `farm2.js` (Indus done in v1.3.0).
 
 v1.1.0: skin that isn't flat orange plastic (wrap and warm subsurface term, warm sky light, a view rim that separates the
 character from any background, roughness variation, linear-light desaturation), roughness maps on wood, clay and
@@ -54,7 +55,7 @@ Shipped in v1.0.0:
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
-   *(Item 2 under way: Rome done in v1.2.0; Egypt, Indus, Persia and the farm still to do.)*
+   *(Item 2 under way: Rome done in v1.2.0, Indus in v1.3.0; Egypt, Persia and the farm still to do.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -109,3 +110,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   long bisection: not shadows, lights, AO, DOF or reflections, but bump mapping on an edge-on face, now guarded in
   the engine. Shaduf demo unchanged (stills match v1.1 within render noise, all probes identical).
 - **21 Nov 2026:** Owner's verdict on v1.2.0: likes the look of the Roman street. Next in item 2: Egypt (`egypt.js`).
+- **21 Nov 2026 (cont.):** Owner chose the Indus set next (the Mohenjo-daro video is the first January post). Built
+  v1.3.0 on roman.js's shared tools. QA caught: weeds floating 15 cm (a ground mesh added after the last matrix update
+  raycast at the origin), palms against the kilt's flare, a worker who read as turning his back (head bowed too far),
+  and water hidden in the drain's shadow. Kaggle: 0.68 s a frame. Kaggle's one-pass loudness gave -15.4 LUFS; the mix was
+  remastered to -14 with the two-pass chain.

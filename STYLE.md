@@ -76,7 +76,8 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   **QA:** `probe_rome.mjs` (every prop's lowest points and every plant against the ground under it, soles, palms vs cloth).
   Sound for test clips: a Kokoro line (`kokoro_say.py`), The Explainer's code-made music bed (`music-bed.py` in the
   explainer-video repo's skill) ducked under the voice, `scripts/make_ambience.py` (wind, cicadas, birds) under that,
-  and earshot one-shots (`bamboo_swish` into the cut, `cut_hit/air` on it), mastered to -14 LUFS. Ambience alone fails
+  and earshot one-shots (`bamboo_swish` into the cut, `cut_hit/air` on it), mastered to -14 LUFS with the two-pass
+  loudnorm chain (the Kaggle job's one pass landed at -15.4 on a short clip: re-mux the mastered mix onto its video). Ambience alone fails
   `earshot critique` (no music, dead air), and music without a voice reads as code-synthesized.
 
 ### Indus set (v1.3.0, Nov 2026)
