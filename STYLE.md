@@ -310,6 +310,8 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - A close-up bench finds what a full-body view hides: since v1.0 the thumb leaned out through the back of the hand (a
   bump on the back of the palm). Pose by direction, not by stacked rotation angles, when the sign of each angle is
   unclear.
+- A hard impact (a mallet stopping dead on a chisel, large in a close-up) is a real frame-to-frame jump: list it with
+  `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
 - A grasp that starts from the rest pose can already be inside a thick handle and count as "touching" at once: open
