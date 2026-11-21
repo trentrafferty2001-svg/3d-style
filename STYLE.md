@@ -185,6 +185,25 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   sides): render it after any hand change and compare.
 - **Test scene** `shots_hd.js` (5.3 s): an Egyptian mason dresses a block with a copper chisel and a club mallet.
 
+### Rope and cloth (v1.9.0, Nov 2026)
+
+- **`sim.js`**: simulations baked once when a shot is built, then played back as a pure function of time (motion
+  blur sub-frames, stills and the farm all agree).
+  - `bakeRope({ length, n, radius, init, pins(t), bodies(t), groundAt, heavy, t0, t1 })`: a verlet chain. Pins hold
+    points (a knot, the hands) and drop when a hand lets go; bodies are capsules it can't pass through (legs, torso,
+    feet); the ground has friction; heavy points carry a load. `rope.at(t)` gives the points (draw them with
+    `liveStream`).
+  - `bakeHem({ hipsAt(t), len, stiff, damping })`: the kilt's hem as a damped pendulum driven by the hips' motion and
+    tilt. `F.kilt(...hem(t))`; add a little noise on top for wind.
+  - Start the bake before the shot (t0 below 0) so the rope has settled by the first frame. Pose the character on a
+    fine clock once and record what the sims need (grips, body capsules, hips), then read it back.
+- Give a held rope a little slack: the length between two pinned points must be at least their largest distance
+  (rounded up). Rounded down, the rope between the fists stretched 47%.
+- **Probe** `scripts/probe_simrope.mjs <engine> <duration>` (`window._ROPE` under `?dbg`): no segment stretched more than
+  3%, never under the ground, never through a body. With hands on the rope, `probe_grasp.mjs` too.
+- **Test scene** `shots_rp.js` (5.5 s): a hauler leans back on a sledge rope, heaves twice and lets go; the rope drops
+  slack on the sand and he stumbles back, his kilt swinging.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -231,6 +250,12 @@ and run them from there (e.g. `cp scripts/probe_hands.mjs /home/claude/style2/ &
 
 ## QA before every final render (all must pass)
 
+**One command:** `python3 -I scripts/qa.py <shots_X.js> <out dir> [--impacts s,s]` (from the repo root) copies the
+engine, points it at the shot file and runs every check below that applies (the probes are chosen from what the shot
+sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`), then prints PASS/FAIL per check. `--quick` runs the probes
+and scans without the stills and preview. It still leaves two jobs to you: read every still, and run earshot on the
+final MP4.
+
 Run these from the engine folder (copy the scripts in; they need `?dbg`, which `shots_dm.js` honours):
 
 | Check | Tool | Pass |
@@ -247,6 +272,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Code after a `//` comment on the same line (silently disabled) | `python3 -I scripts/swallow_scan.py` | PASS |
 | Sets: props and plants on the ground, soles and palms of every character | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` or `_FS` under `?dbg`; airborne effects set `userData.noGround`) | PASS |
 | Hands on ropes, handles and tools: contact, no fingers inside, wrist, reach | `probe_grasp.mjs <engine> <duration>`, hand bench `shots_hb.js` after hand changes | PASS |
+| Simulated ropes: stretch, ground, bodies | `probe_simrope.mjs <engine> <duration>` | PASS |
 | Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -314,6 +340,16 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
+- Verlet damping is per step: 0.993 at 480 Hz is thick air (the rope fell 0.9 m in half a second, like a feather).
+  Keep it near 1 (0.9992) and compare a fall with free fall.
+- Collide ropes with the feet too, but only lift the rope onto a foot (`up: true`): a capsule push all round coiled the
+  rope round the sandal like a tie.
+- Contacts must be inelastic: when a body pushes a rope point out, drop the speed into the surface and keep the speed
+  along it. Counting the push as speed flung the rope (a 1 cm push at 480 Hz is 4.8 m/s); carrying the old speed
+  over let gravity pile up on a point resting on a foot until the rope slid 1.3 m on its own.
+- Plant feet in world space. Feet given relative to a moving body slide along the ground (foot skating), and a
+  sliding foot sweeps through anything lying there (it scooped the rope 60 cm into the air). A foot moves only while
+  it is lifted.
 - A grasp that starts from the rest pose can already be inside a thick handle and count as "touching" at once: open
   the joint wide first, then close it.
 - Twice more while building the hands, a `//` comment swallowed code: once the loop that builds the mouth's opening,
