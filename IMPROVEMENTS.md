@@ -21,8 +21,13 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.1.0 is released (backlog items 6 + 7: skin shading, roughness variation, film grain), waiting for the owner's verdict
-on the clip. v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
+v1.2.0 is released (backlog item 2, first set: Rome), waiting for the owner's verdict on the Roman test clip. v1.1.0
+(skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
+
+v1.2.0: a Roman street set (`roman.js`, `romanSite()`) with detailed code-made materials, fluted columns, rounded blocks,
+wind vegetation and amphorae, all grounded; a tunic outfit for the character; `rome.js`'s old builders upgraded in
+place; a bump-normal guard in `main.js` (edge-on sparkles) and two new QA tools (`probe_rome.mjs`, `sparkle_scan.py`).
+Next sets in item 2: `egypt.js`, then an Indus set for the Mohenjo-daro video, then `persia.js` and `farm2.js`.
 
 v1.1.0: skin that isn't flat orange plastic (wrap and warm subsurface term, warm sky light, a view rim that separates the
 character from any background, roughness variation, linear-light desaturation), roughness maps on wood, clay and
@@ -49,6 +54,7 @@ Shipped in v1.0.0:
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
+   *(Item 2 under way: Rome done in v1.2.0; Egypt, Indus, Persia and the farm still to do.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -97,3 +103,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   blue in linear light; turning fill and rim up and down barely changed it, a grey test showed the shape was there.
   Full QA passed (all probes unchanged from v1.0.1, face bench, stills every 0.25 s, pop scan, earshot launch-grade,
   clipped pixels 0.38% vs 0.39%). Kaggle: 0.82 s a frame vs 0.79, so the shading is nearly free.
+- **21 Nov 2026 (session 2, cont.):** Owner liked v1.1.0 and picked item 2 (sets), Rome first, since 3 of the 5 January
+  videos are Greco-Roman. Built v1.2.0. QA caught and fixed: floating amphorae (loose bounding box), grass floating
+  on a coarse ground mesh, palms inside the tunic's skirt, and a row of white dots on a door lintel. The dots took a
+  long bisection: not shadows, lights, AO, DOF or reflections, but bump mapping on an edge-on face, now guarded in
+  the engine. Shaduf demo unchanged (stills match v1.1 within render noise, all probes identical).
