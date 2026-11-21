@@ -38,11 +38,12 @@ function poseHauler(F, t) {
   const lean = (1 - let_) * (-0.25 - 0.08 * h) + let_ * (-0.12 * (1 - se) + 0.04 * se);   // leaning back on the rope, then upright
   F.pose({ hipsY: -0.09 - 0.03 * h + 0.06 * let_, hipsZ: -0.06 * (1 - let_), spine: [lean, 0, 0], chest: [lean * 0.35, 0, 0] });
   const w = (x, y, z) => F.root.localToWorld(V(x, y, z));
-  // feet: the left planted forward, the right braced behind; on the stumble the right steps further back, then the left joins it
-  const back = 0.28 * st, lift = 0.07 * Math.sin(Math.PI * clamp((t - T_LET - 0.05) / 0.4));
-  const fl = V(0.12, 0, 0.3 + 0.16 * st - 0.1 * se), fr = V(-0.13, 0, -0.32 - back + 0.16 * st);
-  const lfLift = 0.06 * Math.sin(Math.PI * clamp((t - T_LET - 0.45) / 0.35)) * (t > T_LET + 0.45 ? 1 : 0);
-  for (const [s, f, up, sx] of [['l', fl, lfLift, 1], ['r', fr, lift, -1]]) { const p = w(f.x, 0, f.z); p.y = G(p.x, p.z) + 0.075 + up; F.legIK(s, p, w(sx * 0.3, 0.5, 1.4)); }
+  // feet, planted on the sand (world positions, so they never slide): the left forward, the right braced behind. On the
+  // stumble the right steps back, then the left follows; each foot lifts while it moves and is still otherwise
+  const sR = smooth(range(t, T_LET + 0.05, T_LET + 0.4)), sL = smooth(range(t, T_LET + 0.45, T_LET + 0.85));
+  const liftR = 0.07 * Math.sin(Math.PI * clamp((t - T_LET - 0.05) / 0.35)), liftL = 0.06 * Math.sin(Math.PI * clamp((t - T_LET - 0.45) / 0.4));
+  const feet = [['l', V(0.17, 0, FZ + 0.3 - 0.3 * sL), liftL, 1], ['r', V(-0.08, 0, FZ - 0.32 - 0.14 * sR), liftR, -1]];
+  for (const [s, p, up, sx] of feet) { p.y = G(p.x, p.z) + 0.075 + up; F.legIK(s, p, w(sx * 0.3, 0.5, 1.4)); }
   return { h, let_ };
 }
 // grip points on the rope while he holds it: both hands in front at belly height, rope running towards the sledge
@@ -60,7 +61,7 @@ function rig(makeStage) {
     const bp = (n) => F.bones[n].getWorldPosition(V(0, 0, 0));
     const body = [{ a: bp('hips'), b: bp('neck'), r: 0.15 }, { a: bp('lHip'), b: bp('lKn'), r: 0.075 }, { a: bp('lKn'), b: bp('lAn'), r: 0.06 },
       { a: bp('rHip'), b: bp('rKn'), r: 0.075 }, { a: bp('rKn'), b: bp('rAn'), r: 0.06 },
-      ...['l', 'r'].map(s => { const an = bp(s + 'An'), toe = F.bones[s + 'An'].localToWorld(V(0, -0.05, 0.16)); return { a: an.clone().add(V(0, -0.04, 0)), b: toe, r: 0.045 }; })]; // feet: the rope goes round the sandals, not under them
+      ...['l', 'r'].map(s => { const an = bp(s + 'An'), toe = F.bones[s + 'An'].localToWorld(V(0, -0.05, 0.16)); return { a: an.clone().add(V(0, -0.04, 0)), b: toe, r: 0.045, up: true }; })]; // feet: the rope lies over the sandals, not under or round them
     const hq = F.bones.hips.getWorldQuaternion(new THREE.Quaternion());
     rec.push({ t, grips: grips(F, tt), body, hips: { pos: bp('hips'), quat: hq } }); }
   const at = (t) => rec[Math.max(0, Math.min(rec.length - 1, Math.round((t - T0) * HZ)))];
@@ -116,12 +117,12 @@ export const SHOTS = [
     } };
   } },
   { start: CUT, end: DURATION, build: ({ makeStage }) => {
-    const R = rig(makeStage), c = cam(34);
+    const R = rig(makeStage), c = cam(36);
     return { scene: R.W.scene, camera: c, update(lt, t) {
       // closer, from the front-side: the rope dropping slack at his feet, his kilt swinging as he steps back
       const k = smooth(lt / (DURATION - CUT)), hh = handheld(t, 0.5, 9);
-      const cp = V(2.0 - 0.1 * k + hh.p[0], 1.2 + hh.p[1], -1.55 - 0.1 * k + hh.p[2]); R.act(t, cp);
-      const tg = V(0.0, 0.75, -3.85); // his whole figure and the rope at his feet
+      const cp = V(1.75 - 0.1 * k + hh.p[0], 1.3 + hh.p[1], -0.55 - 0.1 * k + hh.p[2]); R.act(t, cp);
+      const tg = V(0.12, 0.72, -3.75); // his whole figure and the slack rope on the sand in front of him
       place(c, cp.toArray(), tg.toArray(), hh.roll);
       return { bloom: 0.35, warm: 1.1, sat: 1.1, dof: { focus: cp.distanceTo(tg), aperture: 0.003, maxblur: 0.006 } };
     } };

@@ -152,4 +152,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   ground friction; the kilt hem as a pendulum driven by the hips), `probe_simrope.mjs`, a hauler who lets go of a sledge
   rope. QA caught a wide shot that missed the hauler, the rope's tail starting in a knot, the slack rope lying through
   his sandals (feet now collide), arms 14 cm short of the grips while leaning back, the rope between the fists
-  stretched 47% (length rounded down), and a rope that fell like a feather (damping per step too strong).
+  stretched 47% (length rounded down), a rope that fell like a feather (damping per step too strong), a palm against the
+  kilt, wrists bent 83 degrees (rope along the forearms: elbows now out), the rope coiled round a sandal, collision
+  pushes that flung the rope or let it creep 1.3 m, and feet that skated on the sand (now planted in world space).
+  Item 10 started alongside: `scripts/qa.py` runs every applicable check in one command.

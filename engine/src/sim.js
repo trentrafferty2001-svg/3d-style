@@ -6,7 +6,7 @@ const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 
 // ---------- rope: a verlet chain ----------
 // length (m), n points; pins(t) -> [[index, Vector3], ...] holds points (a stake, the hands); bodies(t) -> capsules
-// [{ a, b, r }] the rope can't pass through (legs, torso, a post); groundAt(x, z) the floor under it (null: none).
+// [{ a, b, r, up }] the rope can't pass through (legs, torso, a post; up: true only lifts it on top, for feet); groundAt(x, z) the floor under it (null: none).
 // heavy: { index: mass ratio } for a load on the rope (a bucket). The table is stored at `store` Hz from t0 to t1.
 // damping is per step: keep it close to 1 (0.9992 at 480 Hz is a light air drag; lower and ropes fall in slow motion).
 export function bakeRope({ length, n = 32, radius = 0.012, init, pins = () => [], bodies = () => [], groundAt = null,
@@ -19,7 +19,10 @@ export function bakeRope({ length, n = 32, radius = 0.012, init, pins = () => []
   const pushOut = (p, c) => {                                          // out of a capsule
     const ab = tmp.copy(c.b).sub(c.a), k = Math.max(0, Math.min(1, d.copy(p).sub(c.a).dot(ab) / ab.lengthSq()));
     const q = c.a.clone().addScaledVector(ab, k), off = p.clone().sub(q), dist = off.length(), min = c.r + radius;
-    if (dist < min && dist > 1e-9) p.copy(q).addScaledVector(off, min / dist);
+    if (dist >= min || dist < 1e-9) return;
+    // up: only lift the rope onto it (feet: a rope falls over a foot and lies across it, it doesn't wrap round it)
+    if (c.up) { const h2 = off.x * off.x + off.z * off.z; p.y = q.y + Math.sqrt(Math.max(0, min * min - h2)); return; }
+    p.copy(q).addScaledVector(off, min / dist);
   };
   let step = 0;
   for (let t = t0; t <= t1 + 1e-9; t += dt, step++) {
@@ -34,7 +37,13 @@ export function bakeRope({ length, n = 32, radius = 0.012, init, pins = () => []
         if (wa + wb === 0) continue; d.copy(b).sub(a); const len = d.length(); if (len < 1e-9) continue;
         const corr = (len - L) / (len * (wa + wb)); a.addScaledVector(d, corr * wa); b.addScaledVector(d, -corr * wb); }
       for (const [i, x] of pin) P[i].copy(x);
-      for (let i = 0; i < n; i++) { if (pinned.has(i)) continue; for (const c of body) pushOut(P[i], c);
+      // a push out of a body is an inelastic contact: the point moves out, the speed into the surface is dropped and the
+      // speed along it kept (with a little friction). Left alone, verlet reads the push as speed (a 1 cm push at 480 Hz
+      // flings the rope at 4.8 m/s); carrying the old speed over instead lets gravity pile up on a resting point
+      for (let i = 0; i < n; i++) { if (pinned.has(i)) continue; for (const c of body) { const before = P[i].clone(); pushOut(P[i], c);
+        const push = P[i].clone().sub(before), len = push.length(); if (len < 1e-9) continue;
+        const nrm = push.divideScalar(len), v = before.sub(Q[i]), vn = v.dot(nrm); if (vn < 0) v.addScaledVector(nrm, -vn);
+        v.multiplyScalar(1 - 0.3 * friction); Q[i].copy(P[i]).sub(v); }
         if (groundAt) { const g = groundAt(P[i].x, P[i].z) + radius; if (P[i].y < g) { P[i].y = g;
           // friction on the ground: kill part of the sideways slide
           const q = Q[i]; q.x += (P[i].x - q.x) * friction; q.z += (P[i].z - q.z) * friction; } } }

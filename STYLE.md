@@ -342,7 +342,14 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
 - Verlet damping is per step: 0.993 at 480 Hz is thick air (the rope fell 0.9 m in half a second, like a feather).
   Keep it near 1 (0.9992) and compare a fall with free fall.
-- Collide ropes with the feet too: without them the slack rope lay through the sandals.
+- Collide ropes with the feet too, but only lift the rope onto a foot (`up: true`): a capsule push all round coiled the
+  rope round the sandal like a tie.
+- Contacts must be inelastic: when a body pushes a rope point out, drop the speed into the surface and keep the speed
+  along it. Counting the push as speed flung the rope (a 1 cm push at 480 Hz is 4.8 m/s); carrying the old speed
+  over let gravity pile up on a point resting on a foot until the rope slid 1.3 m on its own.
+- Plant feet in world space. Feet given relative to a moving body slide along the ground (foot skating), and a
+  sliding foot sweeps through anything lying there (it scooped the rope 60 cm into the air). A foot moves only while
+  it is lifted.
 - A grasp that starts from the rest pose can already be inside a thick handle and count as "touching" at once: open
   the joint wide first, then close it.
 - Twice more while building the hands, a `//` comment swallowed code: once the loop that builds the mouth's opening,
