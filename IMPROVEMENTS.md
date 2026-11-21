@@ -21,7 +21,7 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.2.0 is released (backlog item 2, first set: Rome), waiting for the owner's verdict on the Roman test clip. v1.1.0
+v1.2.0 is released (backlog item 2, first set: Rome); the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
 v1.2.0: a Roman street set (`roman.js`, `romanSite()`) with detailed code-made materials, fluted columns, rounded blocks,
@@ -108,3 +108,4 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   on a coarse ground mesh, palms inside the tunic's skirt, and a row of white dots on a door lintel. The dots took a
   long bisection: not shadows, lights, AO, DOF or reflections, but bump mapping on an edge-on face, now guarded in
   the engine. Shaduf demo unchanged (stills match v1.1 within render noise, all probes identical).
+- **21 Nov 2026:** Owner's verdict on v1.2.0: likes the look of the Roman street. Next in item 2: Egypt (`egypt.js`).
