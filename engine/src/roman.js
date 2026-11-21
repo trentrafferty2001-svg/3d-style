@@ -223,9 +223,10 @@ function cypressGeo(h, seed) {
   return mergeGeometries(parts);
 }
 // olive: a few big silver-green clumps on a gnarled trunk
-function oliveGeo(seed) {
+// cols: two leaf colours (default olive silver-green); n, spread: number of leaf blobs and how far they reach from the trunk
+function oliveGeo(seed, { cols = [[0.36, 0.41, 0.27], [0.47, 0.5, 0.38]], n = 34, spread = 1.5 } = {}) {
   const R = rng(seed), parts = [];
-  for (let k = 0; k < 34; k++) { const a = R() * 6.28, d = 0.3 + R() * 1.5, y = 2.3 + R() * 1.3 - d * 0.25, s = 0.45 + R() * 0.4; const c = R() < 0.5 ? [0.36, 0.41, 0.27] : [0.47, 0.5, 0.38];
+  for (let k = 0; k < n; k++) { const a = R() * 6.28, d = 0.3 + R() * spread, y = 2.3 + R() * 1.3 - d * 0.25, s = 0.45 + R() * 0.4; const c = R() < 0.5 ? cols[0] : cols[1];
     const b = blob(s, seed * 50 + k, c, 0.7); b.translate(Math.cos(a) * d, y, Math.sin(a) * d); parts.push(b); }
   return mergeGeometries(parts);
 }
