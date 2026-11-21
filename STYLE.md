@@ -74,7 +74,10 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   materials, fluted columns and world-scale UVs.
 - **Test scene** `shots_rm.js` (5.5 s): a crane-down to a worker on the pavement who points down the street, then a close-up.
   **QA:** `probe_rome.mjs` (every prop's lowest points and every plant against the ground under it, soles, palms vs cloth).
-  Sound for test clips: `scripts/make_ambience.py` (wind, cicadas, birds, one-shots such as an earshot whoosh on a cut).
+  Sound for test clips: a Kokoro line (`kokoro_say.py`), The Explainer's code-made music bed (`music-bed.py` in the
+  explainer-video repo's skill) ducked under the voice, `scripts/make_ambience.py` (wind, cicadas, birds) under that,
+  and earshot one-shots (`bamboo_swish` into the cut, `cut_hit/air` on it), mastered to -14 LUFS. Ambience alone fails
+  `earshot critique` (no music, dead air), and music without a voice reads as code-synthesized.
 
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
