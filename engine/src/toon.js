@@ -33,7 +33,12 @@ function texes() {
   weave.repeat.set(10, 10);
   const hair = noiseCanvas(256, 8, (d, n, r) => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const i = (y * n + x) * 4; const v = 120 + Math.sin(x * 0.9 + Math.sin(y * 0.15) * 3) * 50 + (r() - 0.5) * 50; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } });
   hair.repeat.set(8, 3);
-  _tex = { pores, weave, hair };
+  // linen roughness variation (v1.1): soft blotches in [0.8, 1] so the kilt's sheen isn't one even sheet
+  const linenR = noiseCanvas(128, 13, (d, n, r) => { const v = new Float32Array(n * n).map(() => r()); for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    let a = 0; for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) a += v[((y + j + n) % n) * n + ((x + i + n) % n)]; a /= 49;
+    const g = Math.round(255 * (0.8 + 0.2 * Math.min(1, Math.max(0, (a - 0.5) * 6 + 0.5)))); const k = (y * n + x) * 4; d[k] = d[k + 1] = d[k + 2] = g; d[k + 3] = 255; } });
+  linenR.repeat.set(3, 3); linenR.colorSpace = THREE.NoColorSpace;
+  _tex = { pores, weave, hair, linenR };
   return _tex;
 }
 
@@ -52,12 +57,63 @@ function kiltFlutter(m) {
   };
   return m;
 }
+// Skin shading (v1.1): light wraps a little past the terminator and comes back warm, like light scattered under skin
+// (a cheap subsurface term, diffuse only: highlights still use the true angle). A soft view-facing rim lifts the
+// silhouette off any background, and roughness varies slightly over the body so the highlights aren't one plastic
+// sheet. The noise is taken from the rest-pose position, so it never swims as the character moves. Own cache key.
+export const SKIN = { wrap: 0.5, sss: [1.0, 0.36, 0.2], sssK: 0.7, rim: 0.25, rimColor: [1.0, 0.9, 0.78], rough: 0.22, lit: [1.05, 1.0, 0.92], shade: [1.05, 0.85, 0.72], sky: [1.0, 0.8, 0.66], sat: 0.56 };
+function skinShading(m, o = SKIN) {
+  const key = 'skinShading:' + JSON.stringify(o);
+  m.customProgramCacheKey = () => key;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uWrap = { value: o.wrap }; sh.uniforms.uSssK = { value: o.sssK }; sh.uniforms.uSss = { value: new THREE.Vector3(...o.sss) };
+    sh.uniforms.uRim = { value: o.rim }; sh.uniforms.uRimC = { value: new THREE.Vector3(...o.rimColor) }; sh.uniforms.uRough = { value: o.rough };
+    sh.uniforms.uLit = { value: new THREE.Vector3(...o.lit) }; sh.uniforms.uShade = { value: new THREE.Vector3(...o.shade) }; sh.uniforms.uSkinSat = { value: o.sat }; sh.uniforms.uSkyT = { value: new THREE.Vector3(...(o.sky || [1, 1, 1])) };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSkinP;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvSkinP = position;');
+    const from = 'reflectedLight.directDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );';
+    const chunk = THREE.ShaderChunk.lights_physical_pars_fragment;
+    if (!chunk.includes(from)) throw new Error('skinShading: three.js lighting chunk changed');
+    const fromI = 'reflectedLight.indirectDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );';
+    if (!chunk.includes(fromI)) throw new Error('skinShading: three.js lighting chunk changed');
+    const lit = chunk.replace(from, `{
+        float nl = dot( geometryNormal, directLight.direction );
+        float wrapped = saturate( ( nl + uWrap ) / ( 1.0 + uWrap ) );
+        vec3 scatter = uSss * uSssK * max( wrapped - saturate( nl ), 0.0 ); // warm light past the terminator
+        reflectedLight.directDiffuse += directLight.color * ( saturate( nl ) * uLit + scatter ) * BRDF_Lambert( material.diffuseColor );
+      }`).replace(fromI, 'reflectedLight.indirectDiffuse += irradiance * uShade * BRDF_Lambert( material.diffuseColor );');
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform float uWrap, uSssK, uRim, uRough, uSkinSat; uniform vec3 uSss, uRimC, uLit, uShade, uSkyT; varying vec3 vSkinP;
+        float skinHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
+        float skinNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
+          return mix( mix( mix( skinHash( i ), skinHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( skinHash( i + vec3( 0, 1, 0 ) ), skinHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+                      mix( mix( skinHash( i + vec3( 0, 0, 1 ) ), skinHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( skinHash( i + vec3( 0, 1, 1 ) ), skinHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z ); }`)
+      .replace('#include <lights_physical_pars_fragment>', lit)
+      .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>
+        #if defined( RE_IndirectDiffuse )
+          iblIrradiance *= uShade; // sky light on skin comes back warm (scattered under the skin), not lavender
+        #endif
+        #if defined( RE_IndirectSpecular )
+          radiance *= uSkyT; clearcoatRadiance *= uSkyT;
+        #endif`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        diffuseColor.rgb = mix( vec3( dot( diffuseColor.rgb, vec3( 0.299, 0.587, 0.114 ) ) ), diffuseColor.rgb, uSkinSat );`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+        roughnessFactor = clamp( roughnessFactor * ( 1.0 + uRough * ( skinNoise( vSkinP * 38.0 ) * 0.7 + skinNoise( vSkinP * 9.0 ) * 0.3 - 0.5 ) * 2.0 ), 0.05, 1.0 );`)
+      .replace('#include <opaque_fragment>', `float skinNV = saturate( dot( normal, normalize( vViewPosition ) ) );
+        outgoingLight += diffuseColor.rgb * uRimC * uRim * pow( 1.0 - skinNV, 3.0 );
+        #include <opaque_fragment>`);
+  };
+  return m;
+}
+
 export function toonMaterials({ skin = 0x8e5434, cloth = 0xefe6d2, hair = 0x241a14, belt = 0x8a3a24 } = {}) {
   const T = texes();
   return {
-    skin: new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.55, bumpMap: T.pores, bumpScale: 0.25, sheen: 0.5, sheenRoughness: 0.45, sheenColor: new THREE.Color(0xffb08a), clearcoat: 0.12, clearcoatRoughness: 0.55 }),
+    skin: skinShading(new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.55, bumpMap: T.pores, bumpScale: 0.25, sheen: 0.2, sheenRoughness: 0.45, sheenColor: new THREE.Color(0xffb08a), clearcoat: 0.12, clearcoatRoughness: 0.55 })),
     lip: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(skin).multiplyScalar(0.72).lerp(new THREE.Color(0x8a3a30), 0.25), roughness: 0.4, clearcoat: 0.3 }),
-    cloth: kiltFlutter(new THREE.MeshStandardMaterial({ color: cloth, roughness: 0.92, bumpMap: T.weave, bumpScale: 0.6, side: THREE.DoubleSide })),
+    cloth: kiltFlutter(new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.6, side: THREE.DoubleSide })),
     belt: new THREE.MeshStandardMaterial({ color: belt, roughness: 0.8, bumpMap: T.weave, bumpScale: 0.4 }),
     hair: new THREE.MeshStandardMaterial({ color: hair, roughness: 1.0, bumpMap: T.pores, bumpScale: 2.5 }),
     brow: new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 0.95 }),
@@ -233,7 +289,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08 } = {
   const nostrils = [-1, 1].map(s => part(new THREE.SphereGeometry(0.0068, 16, 12), M.skin, [s * 0.0112, -0.038, 0.111], [0, 0, 0], [0.9, 0.72, 0.9]));
   // ears
   // ears: a flattened shell, a rim (helix) that follows its outline, a darker bowl inside and an earlobe
-  const earIn = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8a5232).multiplyScalar(0.7), roughness: 0.6 });
+  const earIn = skinShading(new THREE.MeshPhysicalMaterial({ color: M.skin.color.clone().multiplyScalar(0.7), roughness: 0.6 })); // follows the skin tone
   for (const s of [-1, 1]) {
     const ear = new THREE.Group(); ear.position.set(s * 0.1, -0.008, -0.016); ear.rotation.y = s * 0.3; head.add(ear);
     part(new THREE.SphereGeometry(0.03, 24, 16), M.skin, [0, 0, 0], [0, 0, 0], [0.34, 1, 0.66], ear);

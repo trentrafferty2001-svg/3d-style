@@ -26,6 +26,14 @@ function canvasTex(w, h, draw, repeat = [1, 1]) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); t.anisotropy = 8; t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+// roughness variation (v1.1): tileable noise in [lo, 1] for a roughnessMap, so highlights break up a little instead of
+// sitting on one even sheet (the map multiplies the material's roughness, which can still change, e.g. wet clay)
+function roughTex(size, scale, seed, repeat, lo = 0.72) {
+  const t = noiseTex(size, scale, seed, repeat, 1.6);
+  const c = t.image, x = c.getContext('2d'), img = x.getImageData(0, 0, c.width, c.height);
+  for (let k = 0; k < img.data.length; k += 4) { const v = Math.round(255 * (lo + (1 - lo) * img.data[k] / 255)); img.data[k] = img.data[k + 1] = img.data[k + 2] = v; }
+  x.putImageData(img, 0, 0); t.needsUpdate = true; return t;
+}
 function noiseTex(size, scale, seed, repeat, contrast = 1) {
   const t = canvasTex(size, size, (x, w) => {
     const img = x.createImageData(w, w);
@@ -97,6 +105,7 @@ function T() {
     bark: (() => { const t = canvasTex(128, 512, (x, w, h) => { x.fillStyle = '#806040'; x.fillRect(0, 0, w, h); const r = rng(5); for (let i = 0; i < 260; i++) { const xx = r() * w, l = 20 + r() * 120, y = r() * h; x.strokeStyle = `rgba(${40 + r() * 40},${28 + r() * 25},${14 + r() * 14},${0.35 + r() * 0.4})`; x.lineWidth = 1 + r() * 3; x.beginPath(); x.moveTo(xx, y); x.bezierCurveTo(xx + r() * 6 - 3, y + l * 0.3, xx + r() * 6 - 3, y + l * 0.6, xx + r() * 4 - 2, y + l); x.stroke(); } for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(200,170,120,${0.15 + r() * 0.2})`; x.fillRect(r() * w, r() * h, 2 + r() * 6, 8 + r() * 30); } }, [2, 6]); return t; })(),
     rope: (() => { const t = canvasTex(64, 64, (x, w, h) => { x.fillStyle = '#b89a62'; x.fillRect(0, 0, w, h); x.strokeStyle = 'rgba(90,65,30,0.7)'; x.lineWidth = 5; for (let i = -2; i < 6; i++) { x.beginPath(); x.moveTo(i * 16, 0); x.lineTo(i * 16 + 32, h); x.stroke(); } }, [3, 40]); return t; })(),
     clay: noiseTex(128, 0.12, 11, [2, 2], 1.2),
+    roughW: roughTex(128, 0.09, 31, [1, 4]), roughC: roughTex(128, 0.1, 37, [2, 2], 0.7),
     ...detailTextures(),
   };
   return _T;
@@ -107,9 +116,9 @@ export function mats() {
     ground: (() => { const b = t.cracksB, c = t.cracksC; b.repeat.set(6, 6); c.repeat.set(6, 6); return new THREE.MeshStandardMaterial({ vertexColors: true, map: c, roughness: 0.96, bumpMap: b, bumpScale: 1.6 }); })(),
     mud: (() => { t.brickC.repeat.set(2.2, 2.6); t.brickB.repeat.set(2.2, 2.6); return new THREE.MeshStandardMaterial({ map: t.brickC, roughness: 0.95, bumpMap: t.brickB, bumpScale: 3 }); })(),
     plaster: new THREE.MeshStandardMaterial({ color: 0xb48c5c, roughness: 0.93, bumpMap: t.plasterB, bumpScale: 2.8 }),
-    wood: new THREE.MeshStandardMaterial({ map: t.bark, roughness: 0.82, bumpMap: t.bark, bumpScale: 1.6 }),
+    wood: new THREE.MeshStandardMaterial({ map: t.bark, roughness: 0.95, roughnessMap: t.roughW, bumpMap: t.bark, bumpScale: 1.6 }),
     rope: new THREE.MeshStandardMaterial({ map: t.rope, roughness: 0.9, bumpMap: t.rope, bumpScale: 1.2 }),
-    clay: new THREE.MeshStandardMaterial({ map: t.clayC, roughness: 0.78, bumpMap: t.clay, bumpScale: 1.2, side: THREE.DoubleSide }),
+    clay: new THREE.MeshStandardMaterial({ map: t.clayC, roughness: 0.92, roughnessMap: t.roughC, bumpMap: t.clay, bumpScale: 1.2, side: THREE.DoubleSide }),
     clayIn: new THREE.MeshStandardMaterial({ color: 0x5a2e1a, roughness: 0.9, side: THREE.BackSide }),
   };
 }
@@ -227,7 +236,7 @@ export function shaduf() {
   g.userData = { piv, tip, rope, bucket, water, cw };
   // a = pole tilt (+ = bucket end down). swing = bucket pendulum angles [about x, about z]. fill 0..1, slosh tilt.
   g.set = (a, { swing = [0, 0], fill = 0, slosh = 0, wet = 0 } = {}) => {
-    bm.material.color.copy(clayBase).multiplyScalar(1 - 0.32 * wet); bm.material.roughness = 0.78 - 0.4 * wet; // wet clay: darker and glossier
+    bm.material.color.copy(clayBase).multiplyScalar(1 - 0.32 * wet); bm.material.roughness = 0.92 - 0.47 * wet; // wet clay: darker and glossier (x the roughness map's mean 0.85 = 0.78 dry)
     piv.rotation.set(a, 0, 0); g.updateMatrixWorld(true);
     const tp = tip.getWorldPosition(new THREE.Vector3()); g.worldToLocal(tp);
     const dir = new THREE.Vector3(Math.sin(swing[1]), -Math.cos(swing[1]) * Math.cos(swing[0]), Math.sin(swing[0])).normalize();

@@ -40,6 +40,21 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - **Test bench:** `engine/src/shots_ft.js` renders 12 close-ups (neutral, grin, strain, phew; front, three-quarter,
   profile; the gaze pushed sideways). Point `main.js` at it (`mkengine.sh ft`) and check it after any face change.
 
+### Light and skin pass (v1.1.0, Nov 2026)
+
+- **Skin** (`toon.js` `skinShading`, settings in `SKIN`): light wraps a little past the terminator and comes back warm,
+  like light scattered under skin (diffuse only; highlights keep the true angle). Sky light on skin is warmed, not
+  lavender. A soft view-facing rim lifts the silhouette off any background. Roughness varies slightly over the body.
+  The albedo is desaturated in linear light (`sat: 0.56`): the v1.0 skin was about 8:1 red to blue, which is what made it
+  read as flat orange plastic. The inner ears use the same shading and follow the skin tone, so other skin tones work.
+- **Surfaces** (`nile.js` `roughTex`, `toon.js` linen): roughness maps on wood, clay and the kilt's linen, with the
+  base roughness raised so the average is unchanged; only the highlights break up.
+- **Film grain** (`main.js`): fine monochrome grain, strongest in the midtones, new every frame, applied once per output
+  frame after the motion-blur average so it looks the same at any `mb`. `STYLE.grain` sets it (default 0.022, 0 = off),
+  `?grain=0` turns it off for a check.
+- The existing sky lighting (PMREM), cool rim, warm bounce, vignette and grade are kept; item 6's "rim light" is done in
+  the skin shader, so it works from every camera angle.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -119,6 +134,11 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - Clearcoat on dozens of droplets, or a glossy water surface facing the sun, blooms into haze. Keep drops at
   roughness 0.3; the sanitise pass catches the rest.
 - Ropes must reach the bucket's bail; hands must grip within reach (check with the probe, not by eye).
+- Flat "plastic" skin was chroma, not lighting: turning fill and rim up or down barely changed it, while a grey test
+  (`sat: 0`) showed the face had plenty of shape. Test the extreme value first to prove a setting is wired up and to
+  see which knob matters.
+- Before chasing a colour patch in the lighting, check what sits on top of it: a lavender patch on the shoulder at
+  6.75 s was the caption's 30 px soft drop shadow, not the 3D render (raycast the pixel with `?dbg` to see what's there).
 - In JS, `-(x) ** 2` is a syntax error; render.mjs now exits on the first page error instead of hanging.
 - Keep code off the end of a `//` comment line. v1.0.0 shipped with the rope's rotation written after a comment on
   the same line, so the rope never tilted and ended in mid-air beside the swinging bucket. A probe for each attachment
