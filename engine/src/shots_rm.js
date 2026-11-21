@@ -73,9 +73,9 @@ export const SHOTS = [
     const R = rig(makeStage), c = cam(30);
     return { scene: R.W.scene, camera: c, update(lt, t) {
       const k = smooth(lt / (DURATION - CUT)), hh = handheld(t, 0.6, 7);
-      const cp = V(-0.05 - 0.15 * k + hh.p[0], 1.52 + hh.p[1], 4.95 - 0.3 * k + hh.p[2]); R.act(t, cp);
+      const cp = V(-0.15 - 0.12 * k + hh.p[0], 1.58 + hh.p[1], 4.25 - 0.22 * k + hh.p[2]); R.act(t, cp); // head and shoulders
       const head = R.F.bones.head.getWorldPosition(V(0, 0, 0));
-      place(c, cp.toArray(), [head.x + 0.05, head.y - 0.2, head.z], hh.roll);
+      place(c, cp.toArray(), [head.x + 0.03, head.y - 0.13, head.z], hh.roll);
       return { bloom: 0.35, warm: 1.12, sat: 1.1, dof: { focus: cp.distanceTo(head), aperture: 0.004, maxblur: 0.008 } };
     } };
   } },

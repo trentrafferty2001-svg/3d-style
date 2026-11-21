@@ -133,6 +133,8 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Clearances: bucket vs platform, counterweight vs ground, hands vs head | `probe_qa.mjs` | all positive |
 | Pops: frame-to-frame difference scan of a 360p preview and of the final | `python3 -I scripts/pop_scan.py <mp4> <cut s,...>` | PASS (only spikes at cuts) |
 | Dense look: a still every 0.25 s viewed at 400 px wide, plus zooms on faces and edges | `render.mjs stills` | read every frame, top to bottom |
+| Sparkles: isolated white pixels from shading blow-ups (they hold still, so the pop scan misses them) | stills with `QS='mb=1&nodof'`, then `python3 -I scripts/sparkle_scan.py <dir>` | PASS (eye catchlights allowed) |
+| Roman set: props and plants on the ground, soles, palms clear of the tunic | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` under `?dbg`) | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
 ## Lessons from the demo (don't repeat these)
@@ -158,6 +160,11 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - Never put a `//` comment in the middle of a line of code when editing: it silently swallows the rest of the line.
   It happened three times (the v1.0.0 rope; twice while building the Roman set, once as a syntax error and once
   hidden). After editing, run `node --check` on a `.mjs` copy of each changed module, then read the changed lines.
+- Bump mapping can blow up on a face seen exactly edge-on: three.js builds the bumped normal from screen-space
+  derivatives, which degenerate there, and a few anti-aliasing samples on the top of a door lintel lit up to extreme
+  values (a row of white dots after the highlight cap, blown into discs by depth of field). `main.js` now guards the
+  bump normal (falls back to the true normal when it degenerates or tilts too far). It was found by bisecting:
+  lights off one by one, shadow bias, AO, DOF, env reflections, then the material's maps one at a time.
 - A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
   form, `setFromObject(o, true)`, or props float by several cm.
 - Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built

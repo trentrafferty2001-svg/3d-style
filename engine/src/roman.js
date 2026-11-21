@@ -99,17 +99,16 @@ function romanTex() {
   // plaster: grey multiplier (the colour comes from the material), stains, hairline cracks, a few patches fallen off
   const plaster = triTex(N, (i, j) => {
     const n = tfbm(i, j, 0.03, 41, N), st = SS(0.5, 0.85, tfbm(i, j * 0.3, 0.015, 42, N)), v = voro(i, j, N, 5, 43), crack = SS(1.6, 0, v.f2 - v.f1) * SS(0.55, 0.7, tfbm(i, j, 0.02, 44, N));
-    const loss = SS(0.7, 0.74, tfbm(i, j, 0.012, 45, N));
-    const g = (0.9 + 0.1 * n) * (1 - 0.18 * st) * (1 - 0.35 * crack);
-    const c = loss > 0.5 ? [0.62, 0.36, 0.25] : [g, g, g];
-    return { c, b: 0.6 + 0.06 * n - 0.3 * crack - 0.35 * loss, r: 0.9 + 0.08 * n };
+    const g = (0.9 + 0.1 * n) * (1 - 0.18 * st) * (1 - 0.35 * crack); // (no fallen-plaster patches: at this size they read as red specks)
+    return { c: [g, g, g], b: 0.6 + 0.06 * n - 0.3 * crack, r: 0.9 + 0.08 * n };
   });
   // wooden planks, 1.2 m tile: 6 boards with grain
   const wood = triTex(N, (i, j) => {
     const bw = N / 6, b = Math.floor(i / bw), x = i - b * bw, gap = x < 2, s = h2(b, 0, 51), g = tfbm(i * 3.2, j * 0.08, 0.06, 52 + b, N);
     const ring = 0.5 + 0.5 * Math.sin((x * 0.35 + g * 14) + s * 6), t = 0.85 + 0.25 * s;
     const c = gap ? [0.18, 0.12, 0.07] : [0.52 * t, 0.36 * t, 0.22 * t].map(v => v * (0.82 + 0.22 * ring));
-    return { c, b: gap ? 0 : 0.5 + 0.2 * ring, r: gap ? 1 : 0.78 + 0.12 * ring };
+    // shallow gaps and no glossy wood: a steep gap bump on a rounded edge made a row of sun glints that DOF blew into discs
+    return { c, b: gap ? 0.38 : 0.5 + 0.12 * ring, r: gap ? 1 : 0.86 + 0.1 * ring };
   });
   // terracotta roof tiles along +u: flat tegulae with rounded imbrices over the joints, overlapping rows along +v
   const roof = triTex(N, (i, j) => {
@@ -302,7 +301,10 @@ export function romanSite({ seed = 1 } = {}) {
   const rz0 = RS.colZ + 0.45, rz1 = RS.wallZ, ry0 = archY + 0.52, ry1 = ry0 + 0.9, len = Math.hypot(rz0 - rz1, ry1 - ry0);
   { const pg = new THREE.PlaneGeometry(2 * X + 1, len, 1, 1); const uv = pg.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (2 * X + 1) / 2.4, uv.getY(i) * len / 2.4);
     const roofM = new THREE.Mesh(pg, M.roof); roofM.rotation.x = -Math.PI / 2 + Math.atan2(ry1 - ry0, rz0 - rz1); roofM.position.set(0, (ry0 + ry1) / 2 + 0.06, (rz0 + rz1) / 2); g.add(roofM);
-    const ceil = new THREE.Mesh(pg.clone(), M.wood); ceil.rotation.copy(roofM.rotation); ceil.rotation.x += Math.PI; ceil.position.copy(roofM.position).y -= 0.07; g.add(ceil); }
+    // a solid slab under the tiles (a single-sided plane casts no shadow from its front, and a thin ceiling let a dotted
+    // line of sun leak onto the wall): runs 0.3 m into the wall and over the architrave, wooden boards underneath
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(2 * X + 1, 0.14, len + 0.7), M.woodH); worldUV(slab.geometry, 1.2);
+    slab.rotation.x = Math.atan2(ry1 - ry0, rz0 - rz1); slab.position.set(0, (ry0 + ry1) / 2 - 0.02, (rz0 + rz1) / 2 - 0.1); g.add(slab); }
   const ochre = M.plaster(0xd8a86a), red = M.plaster(0xa8452e), wallH = 8.2;
   g.add(block(2 * X + 1, wallH, 0.6, ochre, { r: 0.02, at: [0, wallH / 2, RS.wallZ - 0.3] }));
   g.add(block(2 * X + 1, 1.1, 0.64, red, { r: 0.015, at: [0, sy + 0.55, RS.wallZ - 0.3] })); // painted dado
