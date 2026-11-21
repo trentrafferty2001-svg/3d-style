@@ -106,6 +106,22 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - In the Indus drain: the stream leaves the pipe's lower lip in a parabola with the pipe's speed and lands where the
   water shader puts its rings and foam (`LAND`). The pipe has a dark inner bore and a rim, so it reads as thick terracotta.
 
+### Egypt set (v1.4.0, Nov 2026)
+
+- **`egypt.js`** keeps its API (pyramid, construction ramp, quarry, barge, sledge, water jar, steep ramp, workers' tomb,
+  Nile), now with code-made materials (`egyptMats()`: core limestone with chisel marks and pits, smooth Tura casing,
+  sun-dried mud brick with straw, desert sand with wind ripples, red clay), rounded textured blocks, world-scale UVs,
+  rope loops that hug the block on the sledge, a lathe-turned clay jar, and the Nile on `flowWaterMaterial`. The old
+  `egyptian()` worker (previous rig) stays for old shot files. New: `egyptWorker(i)` (the current character in a linen
+  kilt with a cloth head cover) and `egyptSite()`: a flat work site in the desert with dunes beyond, a pyramid two-thirds
+  built far off with a mud-brick ramp up its face (placed from the 51.8 deg slope), scattered blocks, Nile fields with
+  palms. Layout in `ES`, walkable top `egyptHeightAt`.
+- **`water.js`** gains `wetPatch()` (ground that darkens with a dull sheen as water soaks in, a ragged spreading edge)
+  and `liveStream()` (a stream rebuilt every frame, e.g. poured from a jar in moving hands).
+- **Test scene** `shots_eg.js` (5.5 s): haulers on the rope, a worker pouring water from a jar in front of the sledge's
+  runners; close-up of the water hitting the sand and the patch spreading. Everything follows the poses: the jar is
+  between the hands, the stream leaves its mouth under gravity, the rope runs through the haulers' grips.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -164,7 +180,8 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Pops: frame-to-frame difference scan of a 360p preview and of the final | `python3 -I scripts/pop_scan.py <mp4> <cut s,...>` | PASS (only spikes at cuts) |
 | Dense look: a still every 0.25 s viewed at 400 px wide, plus zooms on faces and edges | `render.mjs stills` | read every frame, top to bottom |
 | Sparkles: isolated white pixels from shading blow-ups (they hold still, so the pop scan misses them) | stills with `QS='mb=1&nodof'`, then `python3 -I scripts/sparkle_scan.py <dir>` | PASS (eye catchlights allowed) |
-| Roman set: props and plants on the ground, soles, palms clear of the tunic | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` under `?dbg`) | PASS |
+| Code after a `//` comment on the same line (silently disabled) | `python3 -I scripts/swallow_scan.py` | PASS |
+| Sets: props and plants on the ground, soles and palms of every character | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` or `_FS` under `?dbg`; airborne effects set `userData.noGround`) | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
 ## Lessons from the demo (don't repeat these)
@@ -188,8 +205,9 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   roughness 0.3; the sanitise pass catches the rest.
 - Ropes must reach the bucket's bail; hands must grip within reach (check with the probe, not by eye).
 - Never put a `//` comment in the middle of a line of code when editing: it silently swallows the rest of the line.
-  It happened three times (the v1.0.0 rope; twice while building the Roman set, once as a syntax error and once
-  hidden). After editing, run `node --check` on a `.mjs` copy of each changed module, then read the changed lines.
+  It happened four times: the v1.0.0 rope, twice while building the Roman set (once a syntax error, once hidden), and
+  once in Egypt, where a wet patch was silently never added to the scene. After editing, run `node --check` on a `.mjs`
+  copy of each changed module and `python3 -I scripts/swallow_scan.py`, then read the changed lines.
 - Bump mapping can blow up on a face seen exactly edge-on: three.js builds the bumped normal from screen-space
   derivatives, which degenerate there, and a few anti-aliasing samples on the top of a door lintel lit up to extreme
   values (a row of white dots after the highlight cap, blown into discs by depth of field). `main.js` now guards the

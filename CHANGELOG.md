@@ -3,6 +3,17 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.4.0 (21 Nov 2026) = commit 6a5d0370935029151622b25347aef37ac572ed8c
+Egypt set (backlog item 2, third set). The channels stay on v1.0.0 until the owner moves them.
+
+- `egypt.js`: code-made materials (`egyptMats`: core limestone, Tura casing, mud brick, desert sand, red clay); the
+  builders (pyramid, ramp, quarry, barge, sledge, jar, steep ramp, tomb, Nile) upgraded with them, rounded blocks and
+  world-scale UVs (same API; old `egyptian()` kept for old shot files); `egyptSite()` (work site, distant pyramid and
+  ramp, blocks, Nile fields and palms) and `egyptWorker()`.
+- `water.js`: `wetPatch()` (damp ground that spreads), `liveStream()` (a stream rebuilt each frame); see-through splash.
+- QA: `swallow_scan.py` (code hidden behind a `//` comment); `probe_rome.mjs` checks every character (`_FS`) and skips
+  `noGround` effects. Test scene `shots_eg.js`.
+
 ## v1.3.1 (21 Nov 2026) = commit afdc60ca1e3df75a91d4645544a345022620f5d7
 Water fix requested by the owner (the Indus drain's water read as a milky rod onto flat paint). Channels stay on v1.0.0.
 
