@@ -95,6 +95,17 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - **Test scene** `shots_in.js` (5.5 s): down the lane to a worker who points at the open drain, then a close-up of the
   drain and the pipe. QA as for the Roman set (`probe_rome.mjs` works on any set that sets `_SITE`).
 
+### Water (v1.3.1, Nov 2026)
+
+- **`water.js`**, for any set: `flowWaterMaterial()` (ripples carried along a flow direction, rings spreading from
+  impact points, foam at the landing point with a thin wake drifting downstream, dark murky body, sky reflections
+  controlled by `env`), `streamMaterial()` for a TubeGeometry stream (see-through body, bright edges, streaks rushing
+  down, thinning with `taper`, breaking into drops near the end), and `splash()` (seeded droplets thrown up where a
+  stream lands; call its `update(t)` every sub-frame through `scene.userData.updaters`; marked `noGround` so grounding
+  probes skip it). All of it is a pure function of time.
+- In the Indus drain: the stream leaves the pipe's lower lip in a parabola with the pipe's speed and lands where the
+  water shader puts its rings and foam (`LAND`). The pipe has a dark inner bore and a rim, so it reads as thick terracotta.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -184,6 +195,10 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   values (a row of white dots after the highlight cap, blown into discs by depth of field). `main.js` now guards the
   bump normal (falls back to the true normal when it degenerates or tilts too far). It was found by bisecting:
   lights off one by one, shadow bias, AO, DOF, env reflections, then the material's maps one at a time.
+- Water up close: a flat coloured plane reads as paint, an opaque tube as a milky rod, and a bare tube as paper. It needs
+  motion in the surface (flowing ripples), reflections, transparency with bright edges, and contact: rings, foam and a
+  splash where the stream lands. Keep the foam to the landing point and a thin wake, because more reads as snow. Keep a
+  stream's wobble to a shimmer, because larger wobbles read as jelly.
 - A mesh added to the ground list after the last `updateMatrixWorld()` raycasts as if it sat at the origin: the Indus
   well square's paving made weeds in the middle of the lane float 15 cm. `groundAt` now refreshes the ground meshes'
   matrices on every call.
