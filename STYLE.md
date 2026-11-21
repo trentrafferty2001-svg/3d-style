@@ -76,8 +76,24 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   **QA:** `probe_rome.mjs` (every prop's lowest points and every plant against the ground under it, soles, palms vs cloth).
   Sound for test clips: a Kokoro line (`kokoro_say.py`), The Explainer's code-made music bed (`music-bed.py` in the
   explainer-video repo's skill) ducked under the voice, `scripts/make_ambience.py` (wind, cicadas, birds) under that,
-  and earshot one-shots (`bamboo_swish` into the cut, `cut_hit/air` on it), mastered to -14 LUFS. Ambience alone fails
+  and earshot one-shots (`bamboo_swish` into the cut, `cut_hit/air` on it), mastered to -14 LUFS with the two-pass
+  loudnorm chain (the Kaggle job's one pass landed at -15.4 on a short clip: re-mux the mastered mix onto its video). Ambience alone fails
   `earshot critique` (no music, dead air), and music without a voice reads as code-synthesized.
+
+### Indus set (v1.3.0, Nov 2026)
+
+- **`indus.js`**: a Mohenjo-daro lane, c. 2500 BC. Materials: fired brick in English bond (1:2:4 bricks, alternating header
+  and stretcher courses, thin mud mortar, worn edges, faint salt bloom), packed earth with small pebbles, mud plaster,
+  red-slipped pots with black painted bands. `indusSite()`: tall blank brick walls on both sides with small doorways,
+  windows and floor-beam ends, a house closing the far end, a covered brick drain along the street (one cover lifted and
+  leaning on the wall, water running inside), a terracotta pipe from an upper floor down into the drain with a thin
+  stream, a junction with a round brick well (wedge-brick ring, dark shaft) and pots, a pipal tree over the walls,
+  weeds at the wall bases. Layout in `IS`, walkable top `indusHeightAt`, exact `site.userData.groundAt`.
+  `indusWorker()` is the character in the kilt outfit, worn as a wrapped cotton cloth.
+- Built from `roman.js`'s shared helpers (`triTex`, `tfbm`, `voro`, `courses`, `jointDist`, `worldUV`, `block`, `settle`,
+  vegetation), so a new set is mostly a layout plus a few textures.
+- **Test scene** `shots_in.js` (5.5 s): down the lane to a worker who points at the open drain, then a close-up of the
+  drain and the pipe. QA as for the Roman set (`probe_rome.mjs` works on any set that sets `_SITE`).
 
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
@@ -168,6 +184,12 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   values (a row of white dots after the highlight cap, blown into discs by depth of field). `main.js` now guards the
   bump normal (falls back to the true normal when it degenerates or tilts too far). It was found by bisecting:
   lights off one by one, shadow bias, AO, DOF, env reflections, then the material's maps one at a time.
+- A mesh added to the ground list after the last `updateMatrixWorld()` raycasts as if it sat at the origin: the Indus
+  well square's paving made weeds in the middle of the lane float 15 cm. `groundAt` now refreshes the ground meshes'
+  matrices on every call.
+- Staging: a head bowed all the way to look at something near the feet hides the face from a camera in front (it reads as
+  the back of the head). Tilt the head part of the way and let the eyes do the rest. A point aimed straight down at the
+  ground reads as a hanging arm: aim it a little above the target.
 - A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
   form, `setFromObject(o, true)`, or props float by several cm.
 - Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built

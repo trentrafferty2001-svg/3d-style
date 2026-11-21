@@ -3,6 +3,16 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.3.0 (21 Nov 2026) = commit 4f243cb8cf3c9e37078d086ff10992b5ca1f9492
+Indus set (backlog item 2, second set). The channels stay on v1.0.0 until the owner moves them.
+
+- `indus.js`: a Mohenjo-daro lane. Fired brick in English bond, packed earth, mud plaster, painted pots; a covered brick
+  drain with water and one lifted cover; a terracotta pipe from an upper floor with a pouring stream; doorways,
+  windows and beam ends; a well square with a round wedge-brick well; a pipal tree; weeds; `indusWorker()`.
+- `roman.js`: shared texture, geometry and vegetation helpers exported; `groundAt` refreshes ground matrices
+  (a mesh added late raycast at the origin).
+- `kokoro_say.py`: Mohenjo-daro pronunciation. Test scene `shots_in.js`.
+
 ## v1.2.0 (21 Nov 2026) = commit 64f49d79b43e21e0bb20f5292ee3326817146541
 Roman set (backlog item 2, first set). The channels stay on v1.0.0 until the owner moves them.
 
