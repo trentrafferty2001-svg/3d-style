@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.9.0 (21 Nov 2026) = commit PENDING
+## v1.9.0 (22 Nov 2026) = commit 2cafa8b4111433a2393e5ea39ea811bda109d564
 Rope and cloth as real simulation (backlog item 4). The channels stay on v1.0.0 until the owner moves them.
 
 - `sim.js` (new): `bakeRope` (verlet chain with pins that let go, body capsules, ground friction, heavy points) and
