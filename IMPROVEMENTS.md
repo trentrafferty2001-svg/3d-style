@@ -21,15 +21,16 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.5.0 is released (item 2: Persia), waiting for the owner's verdict. Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were
-liked by the owner.
+v1.6.0 is released (item 2: the farm, a rice-fish paddy), waiting for the owner's verdict. With it item 2 (sets beyond the
+Nile) is complete: Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0), Egypt (v1.4.0), water (v1.3.1) and Indus
+(v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
 v1.2.0: a Roman street set (`roman.js`, `romanSite()`) with detailed code-made materials, fluted columns, rounded blocks,
 wind vegetation and amphorae, all grounded; a tunic outfit for the character; `rome.js`'s old builders upgraded in
 place; a bump-normal guard in `main.js` (edge-on sparkles) and two new QA tools (`probe_rome.mjs`, `sparkle_scan.py`).
-Next sets in item 2: `egypt.js`, then `persia.js` and `farm2.js` (Indus done in v1.3.0).
+Item 2 is done (all five sets). Next: the owner picks the next backlog item.
 
 v1.1.0: skin that isn't flat orange plastic (wrap and warm subsurface term, warm sky light, a view rim that separates the
 character from any background, roughness variation, linear-light desaturation), roughness maps on wood, clay and
@@ -56,7 +57,8 @@ Shipped in v1.0.0:
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
-   *(Item 2 under way: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0, Persia v1.5.0; the farm (`farm2.js`) still to do.)*
+   *(Done: item 2, sets: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0, Persia v1.5.0, farm v1.6.0. The loose `props*.js` builders
+   were not redone: upgrade a prop when a video first needs it, with the set materials.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -129,3 +131,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   upgraded builders, a Yazd lane with windcatchers and a jub fed by a spout, a worker filling a jar. QA caught a close-up
   shot from behind the worker (his back filled the frame), the jar's water disc poking through its neck, and a held jar
   listed as a grounded prop.
+- **21 Nov 2026 (cont.):** Owner happy with Persia; finished item 2 with the farm (v1.6.0): paddy materials, a conical hat,
+  `paddySite()` (flooded plots, dikes, rice rows, stilted hut, broadleaf trees, carp), a farmer watching carp swim past.
+  QA caught a face hidden by the hat brim (head bowed too far), trees that read as beige rock piles, a back light's glint
+  on the water over the carp, a background carp swimming across the lens, the hero carp swimming into a dike, and tree
+  crowns the probe saw floating (their offset now lives in the geometry).
