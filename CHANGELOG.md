@@ -9,7 +9,9 @@ Rope and cloth as real simulation (backlog item 4). The channels stay on v1.0.0 
 - `sim.js` (new): `bakeRope` (verlet chain with pins that let go, body capsules, ground friction, heavy points) and
   `bakeHem` (the kilt hem as a damped pendulum driven by the hips), both baked when a shot is built and played back as
   pure functions of time.
-- QA: `probe_simrope.mjs`. Test scene `shots_rp.js`.
+- Body contacts are inelastic (no flinging, no creeping); feet only lift a rope (`up: true`).
+- QA: `probe_simrope.mjs`; `scripts/qa.py` runs every applicable check for a shot file in one command (item 10).
+  Test scene `shots_rp.js`.
 
 ## v1.8.0 (21 Nov 2026) = commit 7f4305f2733028255136c01cda2c8951f14fe426
 Hands (backlog item 3). The channels stay on v1.0.0 until the owner moves them.
