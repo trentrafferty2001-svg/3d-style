@@ -9,7 +9,7 @@ for i, r in enumerate(T):
     w0 = r['words'][0][1]
     words = [[w, round(a - w0 + t, 3), round(b - w0 + t, 3)] for w, a, b in r['words']]
     place.append({'wav': f'/home/claude/tts/{r["wav"]}', 'clip_offset': round(t - w0, 4), 'words': words})
-    vo.append({'start': words[0][1], 'words': words})
+    vo.append({'start': words[0][1], 'words': words, 'audioAt': round(t - w0, 4), 'phones': r.get('phones', [])})  # phones: on the line's own audio clock (lipsync.js)
 json.dump({'place': place, 'cuts': cuts}, open(f'/home/claude/plan_{x}.json', 'w'))
 open(f'/home/claude/ricefish/src/vo_{x}.js', 'w').write('export const VO = ' + json.dumps(vo) + ';\n')
 print('speech ends', place[-1]['words'][-1][2], 'duration', round((place[-1]['words'][-1][2] + 1.5) * 24) / 24)

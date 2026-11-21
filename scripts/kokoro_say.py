@@ -1,6 +1,7 @@
 """Run the Kokoro v1.0 ONNX model with the pre-installed onnxruntime.
 Text -> phonemes via the model's own US-English lexicon (misaki format), no external code.
-Writes one 24 kHz wav per line and a JSON with word timings taken from the model's predicted durations.
+Writes one 24 kHz wav per line and a JSON with word and sound (phoneme) timings taken from the model's predicted
+durations; the sound timings drive the lip-sync (engine/src/lipsync.js).
 
 usage: python3 -I kokoro_say.py <model_dir> <lines.json> <out_dir> [voice] [speed]
 lines.json: list of sentences, or [sentence, speed] pairs to set one line's speed
@@ -122,16 +123,21 @@ for li, item in enumerate(lines):
     audio = res[0].astype(np.float32)
     dur = res[1].astype(np.int64) if len(res) > 1 else None
     sr = 24000
-    words_t = []
+    words_t, phones_t = [], []
     if dur is not None and len(dur) == len(ids) + 2:
         spf = len(audio) / max(1, dur.sum())  # samples per duration unit
         cum = np.concatenate([[0], np.cumsum(dur)])  # boundaries; index k+1 is token k of seq (after the leading pad)
         for (w, a, b) in spans:
             words_t.append([w, round(float(cum[a + 1] * spf / sr), 3), round(float(cum[b + 1] * spf / sr), 3)])
+        # every sound with its time (stress marks have no sound of their own; ' ' and punctuation are pauses)
+        for k, p in enumerate(seq):
+            if p in 'ˈˌ': continue
+            phones_t.append(['·' if p == ' ' else p if p not in ',.!?;:—' else '_', round(float(cum[k + 1] * spf / sr), 3), round(float(cum[k + 2] * spf / sr), 3)])
+        for k in range(len(phones_t) - 1): phones_t[k][2] = phones_t[k + 1][1]  # a stress mark's time joins the sound before it
     wav_path = os.path.join(out_dir, f'line{li:02d}.wav')
     wavfile.write(wav_path, sr, (np.clip(audio, -1, 1) * 32767).astype(np.int16))
     report.append({'text': text, 'wav': wav_path, 'dur': round(len(audio) / sr, 3), 'words': words_t,
-                   'phonemes': ''.join(seq)})
+                   'phonemes': ''.join(seq), 'phones': phones_t})
     print(f'{li}: {len(audio)/sr:.2f}s  {"".join(seq)}')
 json.dump(report, open(os.path.join(out_dir, 'timing.json'), 'w'), indent=1, ensure_ascii=False)
 print('dur output' if report and report[0]['words'] else 'no duration output', out_names)
