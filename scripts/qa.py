@@ -11,6 +11,7 @@ Checks, chosen from what the shot file sets up under ?dbg:
   _SITE       probe_rome.mjs (props and plants on the ground, soles, palms vs cloth)
   _HOLDS      probe_grasp.mjs (fingers on ropes, handles, tools; wrist; reach)
   _ROPE       probe_simrope.mjs (simulated rope: stretch, ground, bodies)
+  crowd.js    probe_crowd.mjs (foot skating, people overlapping, feet in the ground)
   lipTracks   probe_lips.mjs with the scene's vo_X.js (closures, openings, rounding, silence)
 --quick skips the stills and the preview (probes and scans only). Sound (earshot) runs on the final MP4, not here.
 Env: THREE_DIR (default /home/claude/deps/three), PLAYWRIGHT_DIR (default: npm root -g + /playwright)."""
@@ -62,6 +63,7 @@ run('swallow scan', PY + [os.path.join(S, 'swallow_scan.py'), os.path.join(REPO,
 if '_SITE' in SRC: run('probe rome', ['node', 'probe_rome.mjs', '.'], last_pass)
 if '_HOLDS' in SRC: run('probe grasp', ['node', 'probe_grasp.mjs', '.', str(dur)], last_pass)
 if '_ROPE' in SRC: run('probe simrope', ['node', 'probe_simrope.mjs', '.', str(dur)], last_pass)
+if "from './crowd.js'" in SRC or 'walk(' in SRC: run('probe crowd', ['node', 'probe_crowd.mjs', '.', str(dur)], last_pass)
 vo = re.search(r"from '\./(vo_\w+\.js)'", SRC)
 if 'lipTracks' in SRC and vo: run('probe lips', ['node', 'probe_lips.mjs', '.', 'src/' + vo.group(1)], last_pass)
 if not quick:
