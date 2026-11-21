@@ -415,3 +415,112 @@ export function splash2(scale = 1, seed = 5) {
   g.update(-1);
   return g;
 }
+
+// ---------- v1.6: rice paddies (rice-fish farming) ----------
+import { triTex, tfbm, voro, std, worldUV, block, settle, smoothstepAB as SS2, instanced, leafMat, oliveGeo, oliveTrunk } from './roman.js';
+import { fbm as fbm2, grass as grass2, mats as nileMats2 } from './nile.js';
+import { flowWaterMaterial } from './water.js';
+import { toon } from './toon.js';
+
+let _FT = null;
+function farmTex() {
+  if (_FT) return _FT;
+  const N = 512;
+  // wet paddy mud, 3 m tile: dark brown, smeared, puddled
+  const mud = triTex(N, (i, j) => { const n = tfbm(i, j, 0.02, 401, N), m = tfbm(i, j, 0.09, 402, N), sm = tfbm(i * 0.3, j * 1.2, 0.03, 403, N);
+    return { c: [0.32, 0.25, 0.17].map(x => x * (0.8 + 0.3 * n + 0.08 * sm)), b: 0.45 + 0.2 * m + 0.1 * sm, r: 0.45 + 0.3 * m }; });
+  // dike: packed earth with grass worn into a path along the top, 2 m tile
+  const dike = triTex(N, (i, j) => { const n = tfbm(i, j, 0.03, 411, N), gr = SS2(0.35, 0.65, tfbm(i, j, 0.04, 412, N)), m = tfbm(i, j, 0.2, 413, N);
+    const c = [0.45, 0.36, 0.24].map((x, q) => x * (1 - gr) + gr * [0.36, 0.5, 0.22][q]).map(x => x * (0.85 + 0.25 * n));
+    return { c, b: 0.4 + 0.3 * m * (0.5 + gr), r: 0.93 }; });
+  // thatch: straw bundles in courses, 1.2 m tile
+  const thatch = triTex(N, (i, j) => { const row = Math.floor(j / 48), y = (j % 48) / 48, n = tfbm(i * 4, j * 0.3, 0.06, 421 + row, N), g = tfbm(i, j, 0.02, 425, N);
+    const c = [0.66, 0.54, 0.32].map(x => x * (0.78 + 0.3 * n) * (0.75 + 0.25 * SS2(0, 0.25, y)) * (0.9 + 0.15 * g));
+    return { c, b: 0.35 + 0.5 * n * SS2(0, 0.3, y), r: 0.95 }; });
+  // rice seen from afar: green carpet with rows, 4 m tile
+  const carpet = triTex(N, (i, j) => { const n = tfbm(i, j, 0.03, 431, N), row = 0.5 + 0.5 * Math.sin(j * 0.8), m = tfbm(i, j, 0.25, 432, N);
+    return { c: [0.32, 0.52, 0.2].map(x => x * (0.8 + 0.25 * n) * (0.88 + 0.16 * row)), b: 0.4 + 0.3 * m * row, r: 0.85 }; });
+  _FT = { mud, dike, thatch, carpet };
+  return _FT;
+}
+let _FM = null;
+export function farmMats() {
+  if (_FM) return _FM;
+  const t = farmTex();
+  _FM = { mud: std(t.mud, { bumpScale: 2 }), dike: std(t.dike, { bumpScale: 2.5 }), thatch: std(t.thatch, { bumpScale: 3 }), carpet: std(t.carpet, { bumpScale: 2 }),
+    wood: nileMats2().wood, hills: new THREE.MeshStandardMaterial({ color: 0x4e6e36, roughness: 1 }) };
+  return _FM;
+}
+// conical straw hat (non la): a shallow cone with a rim, straw texture, sitting on the head bone
+export function conicalHat(F) {
+  const M = farmerMats(), g = new THREE.Group();
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.17, 40, 1, true), M.hat); cone.position.y = 0.085; g.add(cone);
+  const inner = new THREE.Mesh(new THREE.ConeGeometry(0.296, 0.165, 40, 1, true), M.hatIn); inner.material.side = THREE.BackSide; inner.position.y = 0.083; g.add(inner);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.006, 6, 48), M.hatIn); rim.rotation.x = Math.PI / 2; g.add(rim);
+  g.position.set(0, 0.17, -0.005); g.rotation.x = -0.08; F.bones.head.add(g); shadowAll(g);
+  return g;
+}
+// a paddy farmer: the v1.1 character in a short indigo tunic and a conical hat
+export function paddyFarmer({ color = 0x3e4e6e, skin = 0x9a6644 } = {}) { const F = toon({ skin, cloth: color, belt: 0x6a4a2a, hair: 0x1e1612, outfit: 'tunic' }); F.hat = conicalHat(F); return F; }
+
+// Paddies: water level 0, mud at FS.mudY. Plots between grassy dikes (top FS.dikeY) over x in [-15, 15], z in [-34, 8]; rice
+// planted in rows in the near plots (x in FS.rice), a green rice carpet further off; a stilted hut with a thatched roof,
+// broadleaf trees on the far dikes, hills behind. Carp swim in lanes between the rows (site.userData.update(t)).
+// impacts: up to two [x, z] points where something stands in the water (rings), e.g. a farmer's shins.
+// clear: places kept free of rice, circles [x, z, r] or boxes [x0, x1, z0, z1] (a wading path, room for a camera).
+export const FS = { mudY: -0.2, dikeY: 0.12, plotX: [-15, -9, -3, 3, 9, 15], plotZ: [-34, -24, -14, -4, 8], rice: { x: [-9, 9], z: [-14, 8] }, step: 0.32 };
+export function paddyHeightAt(x, z) { // the walkable surface: dike tops, otherwise the mud under the water
+  const near = (v, arr) => arr.some(a => Math.abs(v - a) < 0.3);
+  return near(x, FS.plotX) || near(z, FS.plotZ) ? FS.dikeY : FS.mudY;
+}
+export function paddySite({ seed = 6, impacts = [], clear = [] } = {}) {
+  const M = farmMats(), g = new THREE.Group(), R = rng(seed), props = [], ground = [], updaters = [];
+  // mud floor, then the water over the whole field, slightly see-through
+  const mud = new THREE.Mesh(worldUV(new THREE.PlaneGeometry(60, 70).rotateX(-Math.PI / 2), 3), M.mud); mud.position.set(0, FS.mudY, -12); g.add(mud); ground.push(mud);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(60, 70).rotateX(-Math.PI / 2), flowWaterMaterial({ color: 0x4e5a3c, flow: [1, 0.3], speed: 0.04, scale: 2.5, impacts, ripple: 0.6, env: 0.85, opacity: 0.78 }));
+  water.position.set(0, 0, -12); g.add(water);
+  // dikes: rounded earth banks along the plot lines
+  for (const x of FS.plotX) { const d = block(0.6, 0.34, 42, M.dike, { r: 0.12, tile: 2, at: [x, FS.dikeY - 0.17, -13] }); g.add(d); ground.push(d); }
+  for (const z of FS.plotZ) { const d = block(30.6, 0.34, 0.6, M.dike, { r: 0.12, tile: 2, at: [0, FS.dikeY - 0.17, z] }); g.add(d); ground.push(d); }
+  // rice: planted rows in the near plots (kept off the dikes and any `clear` circles), carpet beyond
+  const spots = [];
+  for (let x = FS.rice.x[0] + 0.2; x < FS.rice.x[1] - 0.1; x += FS.step) for (let z = FS.rice.z[0] + 0.2; z < FS.rice.z[1] - 0.1; z += FS.step) {
+    if (paddyHeightAt(x, z) > FS.mudY + 0.01 || FS.plotX.some(a => Math.abs(x - a) < 0.45) || FS.plotZ.some(a => Math.abs(z - a) < 0.45)) continue;
+    if (clear.some(c => c.length === 4 ? x > c[0] && x < c[1] && z > c[2] && z < c[3] : Math.hypot(x - c[0], z - c[1]) < c[2])) continue; // circles [x, z, r] or boxes [x0, x1, z0, z1]
+    spots.push([x + (R() - 0.5) * 0.05, FS.mudY, z + (R() - 0.5) * 0.05]);
+  }
+  g.add(riceClumps(spots, { h: 0.78, hVar: 0.25, blades: 8, width: 0.012, sway: 0.04, seed: seed + 1, spread: 0.35 }));
+  for (const [x0, x1, z0, z1] of [[-15, 15, -34, -14.3], [-15, -9.3, -14, 8], [9.3, 15, -14, 8]]) {
+    const c = new THREE.Mesh(worldUV(new THREE.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), 4), M.carpet); c.position.set((x0 + x1) / 2, 0.22, (z0 + z1) / 2); g.add(c); }
+  // stilted hut with a thatched gable roof on a far dike
+  { const hx = -6, hz = -24.6, h = new THREE.Group(); h.position.set(hx, FS.mudY, hz); g.add(h); // the stilts stand in the mud
+    for (const [px, pz] of [[-1.3, -1], [1.3, -1], [-1.3, 1], [1.3, 1]]) h.add(block(0.14, 1.52, 0.14, M.wood, { r: 0.02, tile: 1.2, at: [px, 0.76, pz] }));
+    h.add(block(2.9, 0.12, 2.3, M.wood, { r: 0.02, tile: 1.2, at: [0, 1.52, 0] })); h.add(block(2.7, 1.5, 2.1, M.wood, { r: 0.02, tile: 1.2, at: [0, 2.27, 0] }));
+    h.add(block(0.7, 1.1, 0.05, new THREE.MeshStandardMaterial({ color: 0x241a12, roughness: 1 }), { r: 0.01, at: [0.3, 2.17, 1.06] }));
+    for (const s of [-1, 1]) { const r = block(3.4, 0.14, 1.75, M.thatch, { r: 0.04, tile: 1.2 }); r.rotation.x = s * 0.62; r.position.set(0, 3.44, s * 0.62); h.add(r); }
+    props.push(h); }
+  // broadleaf trees along the far dike and hills behind
+  for (let k = 0; k < 7; k++) { const x = -14 + k * 4.5 + (R() - 0.5) * 2, z = -34 + (R() - 0.5) * 0.3; const tr = oliveTrunk(seed + 20 + k, M.wood); tr.scale.setScalar(1.3); tr.position.set(x, FS.dikeY, z); g.add(tr);
+    g.add(instanced(oliveGeo(seed + 30 + k, { cols: [[0.13, 0.25, 0.07], [0.2, 0.33, 0.1]], n: 60, spread: 1.2 }).translate(0, 0.4, 0), leafMat(0.003, 0.9), [[x, FS.dikeY, z, 1.5, R() * 6]], { amp: 0.003, freq: 0.9 })); }
+  { const hg = new THREE.PlaneGeometry(220, 90, 110, 45); hg.rotateX(-Math.PI / 2); const p = hg.attributes.position;
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); p.setY(i, Math.max(0, (-z - 10) * 0.25) * (0.6 + 0.8 * fbm2(x * 0.03, z * 0.03, 441, 4)) + (fbm2(x * 0.1, z * 0.1, 442, 3) - 0.5) * 1.5); }
+    hg.computeVertexNormals(); const hills = new THREE.Mesh(hg, M.hills); hills.position.set(0, -0.3, -80); g.add(hills); }
+  // grass on the dikes
+  const gs = []; for (let i = 0; i < 500; i++) { const onX = R() < 0.5, a = onX ? FS.plotX[Math.floor(R() * FS.plotX.length)] : FS.plotZ[Math.floor(R() * FS.plotZ.length)];
+    const x = onX ? a + (R() - 0.5) * 0.4 : -15 + R() * 30, z = onX ? -34 + R() * 42 : a + (R() - 0.5) * 0.4; gs.push([x, FS.dikeY - 0.01, z, 0.5 + R() * 0.5]); }
+  g.add(grass2(gs, { h: 0.3, seed: 51, color: 0xd8f0b0 }));
+  // carp swimming in lanes between the rows, just under the surface, weaving a little
+  const fishes = [];
+  for (let k = 0; k < 6; k++) { const f = carp(0.28 + R() * 0.1, { seed: k + 1, style: k % 2 ? 'koi' : 'carp' }); f.userData.noGround = true; f.traverse(o => { o.userData.noGround = true; }); g.add(f);
+    let lane = 0; for (let tries = 0; tries < 20; tries++) { lane = FS.rice.z[0] + 1 + R() * (FS.rice.z[1] - FS.rice.z[0] - 2); if (!clear.some(c => c.length === 4 && lane > c[2] - 0.4 && lane < c[3] + 0.4)) break; } // not through a cleared strip
+    const speed = (0.18 + R() * 0.12) * (R() < 0.5 ? 1 : -1), ph = R() * 30;
+    fishes.push({ f, lane: Math.round(lane / FS.step) * FS.step + FS.step / 2, speed, ph, x0: FS.rice.x[0] + 1, x1: FS.rice.x[1] - 1 }); }
+  const fishAt = (o, t) => { const span = o.x1 - o.x0, u = ((o.ph + t * Math.abs(o.speed)) % (2 * span) + 2 * span) % (2 * span), dir = u < span ? Math.sign(o.speed) : -Math.sign(o.speed);
+    const x = dir > 0 ? o.x0 + (u % span) : o.x1 - (u % span); return new THREE.Vector3(x, -0.07, o.lane + 0.06 * Math.sin(t * 1.3 + o.ph)); };
+  updaters.push((t) => fishes.forEach(o => { const p = fishAt(o, t), q = fishAt(o, t + 0.05); o.f.position.copy(p); o.f.face(q.clone().sub(p)); o.f.swim(t + o.ph, 9, 0.4); }));
+  shadowAll(g); water.castShadow = false; mud.castShadow = false;
+  g.updateMatrixWorld(true); const rc = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0);
+  const groundAt = (x, z) => { for (const m of ground) m.updateMatrixWorld(); rc.set(new THREE.Vector3(x, 30, z), DOWN); const hh = rc.intersectObjects(ground, false)[0]; return hh ? hh.point.y : paddyHeightAt(x, z); };
+  g.userData = { ground, props, heightAt: paddyHeightAt, groundAt, fishes, fishAt, water: water.material, update: (t) => updaters.forEach(u => u(t)) };
+  return g;
+}

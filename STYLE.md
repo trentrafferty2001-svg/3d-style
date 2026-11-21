@@ -137,6 +137,21 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - **Test scene** `shots_pe.js` (5.5 s): a crane down from the windcatchers to a worker who lifts his jar under the spout;
   close on the jar filling.
 
+### Farm set: rice-fish paddies (v1.6.0, Nov 2026)
+
+- **`farm2.js`** keeps its builders (`riceClumps`, `clumpGrid`, `carp`, `farmer2`, `splash2`) and adds code-made paddy
+  materials (`farmMats()`: wet mud, grassy dike earth, thatch, a rice carpet for far plots, wood, hills), a conical straw
+  hat (`conicalHat(F)`) and `paddyFarmer()` (the current character in a tunic and the hat).
+- **`paddySite({ seed, impacts, clear })`**: flooded plots between rounded grassy dikes (layout in `FS`, walkable height
+  `paddyHeightAt`), see-through water (`flowWaterMaterial` with `opacity`) over the mud, with rings at the `impacts`
+  (a farmer's shins); rice planted in rows in the near plots and a carpet beyond; a stilted hut with a thatched roof
+  standing in the mud; broadleaf trees and hills; carp swimming in lanes between the rows (`site.userData.update(t)`).
+  `clear` keeps rice out of circles `[x, z, r]` or boxes `[x0, x1, z0, z1]` (round a farmer, a strip for a low camera);
+  the site's carp keep out of the boxes.
+- `oliveGeo(seed, { cols, n, spread })` in roman.js now takes leaf colours, so the same tree makes olives or broadleaves.
+- **Test scene** `shots_fa.js` (5.5 s): a farmer in the paddy, hands on hips, watching two carp swim past in front of
+  him; close on a carp weaving between the stems.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -238,6 +253,15 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - Staging: a head bowed all the way to look at something near the feet hides the face from a camera in front (it reads as
   the back of the head). Tilt the head part of the way and let the eyes do the rest. A point aimed straight down at the
   ground reads as a hanging arm: aim it a little above the target.
+- A wide hat brim makes that worse: with the conical hat, even half a head tilt down hid the farmer's face. Aim the head
+  at a point well above what he looks at (`headAt(target + 0.9 m up, 0.45)`) and let the eyes look down.
+- Over water, a back light at the same height as the camera's downward angle puts its mirror glint right where the
+  camera looks (a white blaze over the carp). Keep rim lights well above the camera's pitch in water scenes.
+- Anything that moves on its own (the site's background carp) must stay out of the space the camera works in: a carp
+  swam across the lens of the close-up, and the hero carp first swam into a dike. Check the path against the set's
+  layout and the camera's clearing.
+- Probes want an instance's origin on the ground: put a tree crown's offset into its geometry (`.translate`) rather than
+  lifting the instance, or the probe reports a crown floating 60 cm up.
 - A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
   form, `setFromObject(o, true)`, or props float by several cm.
 - Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built

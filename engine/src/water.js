@@ -10,8 +10,9 @@ import { TIME, NOISE } from './world.js';
 
 const glslVec2 = (v) => `vec2(${v[0].toFixed(4)}, ${v[1].toFixed(4)})`;
 
-export function flowWaterMaterial({ color = 0x2a3a30, foam = 0xe4e8de, flow = [-1, 0], speed = 0.55, scale = 9, impacts = [], ripple = 1.0, env = 0.7 } = {}) {
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.07, metalness: 0, envMapIntensity: env });
+export function flowWaterMaterial({ color = 0x2a3a30, foam = 0xe4e8de, flow = [-1, 0], speed = 0.55, scale = 9, impacts = [], ripple = 1.0, env = 0.7, opacity = 1 } = {}) {
+  // opacity < 1: shallow water you can see into (mud, plant bases, fish below); drawn after the opaque scene
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.07, metalness: 0, envMapIntensity: env, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 });
   const f = new THREE.Vector2(...flow).normalize(), imps = impacts.slice(0, 2);
   m.userData.uImp = { value: 1 }; // impact strength 0..1: set m.userData.uImp.value = 0 while nothing is landing (rings and foam fade out)
   const key = `flowWater:${f.x.toFixed(3)},${f.y.toFixed(3)}:${speed}:${scale}:${ripple}:${imps.map(p => p.join(',')).join(';')}`;
