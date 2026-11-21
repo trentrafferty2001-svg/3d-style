@@ -310,6 +310,8 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - A close-up bench finds what a full-body view hides: since v1.0 the thumb leaned out through the back of the hand (a
   bump on the back of the palm). Pose by direction, not by stacked rotation angles, when the sign of each angle is
   unclear.
+- Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
+  timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
 - A grasp that starts from the rest pose can already be inside a thick handle and count as "touching" at once: open
   the joint wide first, then close it.
 - Twice more while building the hands, a `//` comment swallowed code: once the loop that builds the mouth's opening,

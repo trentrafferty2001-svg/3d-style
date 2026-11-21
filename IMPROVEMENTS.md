@@ -146,4 +146,5 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   a relaxed cascade, `F.hold()` and `F.grasp()` (each joint closes until it touches the tool), `probe_grasp.mjs` and a
   hand bench (`shots_hb.js`); a mason with chisel and mallet. QA caught the left arm 6 cm short of the chisel, the mallet
   held like a sword (wrist bent 170 degrees), the thumb poking out of the back of the hand (there since v1.0), a thumb
-  starting inside a thick handle, and two more comments that swallowed code (caught by `swallow_scan.py`).
+  starting inside a thick handle, blows timed between frames (the mallet never seen touching the chisel), and two more
+  comments that swallowed code (caught by `swallow_scan.py`). Kaggle queued for 90 minutes; the GitHub farm rendered it.

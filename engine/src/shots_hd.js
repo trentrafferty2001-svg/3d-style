@@ -8,8 +8,9 @@ import { block } from './roman.js';
 
 export const DURATION = 5.3; export const CAPTIONS = []; export const FADES = [];
 export const STYLE = { shadow: 'pcf', mb: 6, shutter: 0.5 };
-const CUT = 2.55;                                        // on the third blow: the knock covers the cut
-export const STRIKES = [0.95, 1.75, 2.55, 3.55, 4.35];   // mallet on chisel (the sound's hits)
+const CUT = 77 / 30;                                     // on the third blow: the knock covers the cut
+// mallet on chisel (the sound's hits), each on an exact 30 fps frame so a frame shows the contact (between frames, none did)
+export const STRIKES = [29, 53, 77, 107, 131].map(f => f / 30);
 const G0 = egyptHeightAt(0, 0.4);
 const TOP = G0 + 0.8;                                     // the block's top
 const TIP = V(-0.06, TOP, 0.2), CDIR = V(0, 1, 0.22).normalize(), CLEN = 0.22, CR = 0.0095;   // chisel: tip on the stone, leaning back
@@ -33,8 +34,9 @@ function swingAt(t) {
   for (let i = 0; i < STRIKES.length; i++) {
     const a = STRIKES[i], b = STRIKES[i + 1] ?? DURATION + 1, d = t - a;
     if (t >= a && t < b) {
-      if (d < 0.1) return 0.1 * Math.sin(Math.PI * d / 0.1);                       // bounce
-      const span = b - a - 0.1, u = (d - 0.1) / span;
+      if (d < 0.035) return 0;                                                      // contact, held for a frame
+      if (d < 0.135) return 0.08 * Math.sin(Math.PI * (d - 0.035) / 0.1);           // bounce
+      const span = b - a - 0.135, u = (d - 0.135) / span;
       if (u < 0.55) return UP * smooth(u / 0.55);                                    // lift
       return UP * (1 - ((u - 0.55) / 0.45) ** 2);                                    // fall, accelerating
     }
@@ -75,7 +77,7 @@ function rig(makeStage) {
     const piv = PIV0.clone().add(V(0, 0.06, 0).multiplyScalar(th));
     const base = BASE0.clone().sub(PIV0).applyQuaternion(q).add(piv), dir = MDIR.clone().applyQuaternion(q);
     return { base, dir, th }; };
-  if (window.DBG) { window._F = F; window._FS = [F]; window._SITE = S; window._W = W; }
+  if (window.DBG) { window._F = F; window._FS = [F]; window._SITE = S; window._W = W; window._ML = ml; window._MCHK = () => ml.localToWorld(V(0, HEADC, 0)).distanceTo(CTOP) - HEADR; }
   const holds = [];
   const act = (t, camPos) => {
     const m = mallet(t); ml.position.copy(m.base); ml.quaternion.setFromUnitVectors(V(0, 1, 0), m.dir); ml.updateMatrixWorld(true);
