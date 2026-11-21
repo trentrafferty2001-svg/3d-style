@@ -28,6 +28,7 @@ with open(os.path.join(model_dir, 'tokens.txt'), encoding='utf-8') as f:
 
 lex = {
     'falkirk': ['f', 'ˈ', 'ɔ', 'l', 'k', 'ɜ', 'ɹ', 'k'],
+    'mohenjo': ['m', 'O', 'h', 'ˈ', 'ɛ', 'n', 'ʤ', 'O'], 'daro': ['d', 'ˈ', 'ɑ', 'ɹ', 'O'],
     'flytrap': ['f', 'l', 'ˈ', 'I', 't', 'ɹ', 'ˌ', 'æ', 'p'],
     'lorenzini': ['l', 'ˌ', 'ɔ', 'ɹ', 'ə', 'n', 'z', 'ˈ', 'i', 'n', 'i'],
     'yakhchals': ['j', 'ˈ', 'æ', 'k', 'ʧ', 'ɑ', 'l', 'z'], 'yakhchal': ['j', 'ˈ', 'æ', 'k', 'ʧ', 'ɑ', 'l'],

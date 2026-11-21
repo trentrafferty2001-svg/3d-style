@@ -321,7 +321,8 @@ export function romanSite({ seed = 1 } = {}) {
   }
   // the exact walkable surface (raycast on the ground meshes): plants and props are placed on what is really there
   g.updateMatrixWorld(true); const rcG = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0);
-  const groundAt = (x, z) => { rcG.set(new THREE.Vector3(x, 40, z), DOWN); const h = rcG.intersectObjects(ground, false)[0]; return h ? h.point.y : romanHeightAt(x, z); };
+  // refresh matrices first: a mesh added to `ground` after the last updateMatrixWorld raycasts as if it sat at the origin
+  const groundAt = (x, z) => { for (const m of ground) m.updateMatrixWorld(); rcG.set(new THREE.Vector3(x, 40, z), DOWN); const h = rcG.intersectObjects(ground, false)[0]; return h ? h.point.y : romanHeightAt(x, z); };
   // amphorae: two leaning on the back wall under the portico, one lying in the dust by the olive tree
   const clay = M.plaster(0xc4805a);
   for (const [x, rz] of [[1.2, -0.16], [1.75, -0.2], [-6.5, -0.15]]) { const a = amphora(clay); a.rotation.set(rz, R() * 0.6, 0); a.position.set(x, 0, RS.wallZ + 0.48); settle(a, sy); g.add(a); props.push(a); }
@@ -354,3 +355,7 @@ export function romanSite({ seed = 1 } = {}) {
 export function romanWorker({ skin = 0x8a5232, color = 0xc9b38c, belt = 0x5a3a20, hair = 0x241a14 } = {}) {
   return toon({ skin, cloth: color, belt, hair, outfit: 'tunic' });
 }
+
+// texture and geometry helpers shared with other sets (indus.js)
+export { triTex, tfbm, voro, courses, jointDist, h2, std, SS as smoothstepAB };
+export { blob, instanced, leafMat, oliveGeo, oliveTrunk };
