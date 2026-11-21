@@ -115,6 +115,7 @@ export function toonMaterials({ skin = 0x8e5434, cloth = 0xefe6d2, hair = 0x241a
     lip: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(skin).multiplyScalar(0.72).lerp(new THREE.Color(0x8a3a30), 0.25), roughness: 0.4, clearcoat: 0.3 }),
     cloth: kiltFlutter(new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.6, side: THREE.DoubleSide })),
     belt: new THREE.MeshStandardMaterial({ color: belt, roughness: 0.8, bumpMap: T.weave, bumpScale: 0.4 }),
+    wool: new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.9, side: THREE.DoubleSide }),
     hair: new THREE.MeshStandardMaterial({ color: hair, roughness: 1.0, bumpMap: T.pores, bumpScale: 2.5 }),
     brow: new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 0.95 }),
     eyeW: new THREE.MeshPhysicalMaterial({ color: 0xe8dfd2, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 }),
@@ -162,7 +163,8 @@ const prof = (keys) => (d) => {
   return keys[keys.length - 1][1];
 };
 
-export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08 } = {}) {
+// outfit: 'kilt' (linen shendyt, bare chest) or 'tunic' (knee-length belted tunic with short sleeves, e.g. Roman or Greek)
+export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outfit = 'kilt' } = {}) {
   const M = toonMaterials({ skin, cloth, hair, belt });
   const root = new THREE.Group();
   // ---------- skeleton ----------
@@ -185,26 +187,41 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08 } = {
   const addSkinned = (geo, mat, name = '') => { const m = new THREE.SkinnedMesh(geo, mat); m.name = name; m.castShadow = m.receiveShadow = true; m.frustumCulled = false; root.add(m); skinned.push(m); return m; };
 
   // ---------- torso (pelvis to neck base), weights hips -> spine -> chest ----------
-  {
+  // torsoGeo(off, y0, y1): the same shaped body, pushed out by off (a tunic over it uses off > 0 and the same weights,
+  // so cloth follows every bend of the body underneath)
+  const torsoW = (y) => y < 1.04 ? [[I.hips, 1]] : y < 1.22 ? blend2(I.hips, I.spine, 1.04, 1.22, y).concat() : y < 1.42 ? blend2(I.spine, I.chest, 1.22, 1.36, y) : blend2(I.chest, I.neck, 1.44, 1.52, y);
+  const torsoGeo = (off = 0, y0 = 0.84, y1 = 1.505, closed = true, loose = false) => {
     const R = prof([[0.84, 0.13], [0.9, 0.152], [1.0, 0.142], [1.08, 0.138], [1.2, 0.158], [1.3, 0.17], [1.38, 0.168], [1.44, 0.15], [1.49, 0.1], [1.52, 0.04], [1.53, 0.001]]); // fuller trapezius slope up into the neck
-    const pts = [[0.001, 0.82]];
-    for (let i = 0; i <= 64; i++) { const y = 0.84 + (1.505 - 0.84) * i / 64; pts.push([R(y), y]); }
-    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 48);
+    const pts = closed ? [[0.001, y0 - 0.02]] : [];
+    // loose cloth: a little extra fullness above the belt (it blouses over it), none at the neck
+    const ofs = (y) => off + (loose ? 0.016 * G((y - 1.1) / 0.08) + 0.006 * SS(1.45, 1.2, y) : 0);
+    for (let i = 0; i <= 64; i++) { const y = y0 + (y1 - y0) * i / 64; pts.push([R(y) + ofs(y), y]); }
+    if (loose) { // cloth doesn't follow every change of curvature: smooth the profile (removes faint bands across the chest)
+      const n0 = closed ? 1 : 0, rr = pts.map(q => q[0]);
+      for (let pass = 0; pass < 3; pass++) for (let i = n0 + 1; i < pts.length - 1; i++) pts[i][0] = (rr[i - 1] + 2 * rr[i] + rr[i + 1]) / 4, rr[i] = pts[i][0];
+    }
+    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), loose ? 72 : 48);
     // shape: wide shoulders, flatter front-to-back, a little chest and belly in front, shoulder blades behind
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
       const sxw = 1.12 + 0.3 * SS(1.2, 1.41, y) * (1 - SS(1.45, 1.5, y)); // shoulders wide enough to tuck the arm caps in
       x *= sxw; z *= 0.66;
+      if (loose) { // cloth bridges the muscles (no chest or shoulder blades) and hangs in soft vertical folds below the chest
+        const a = Math.atan2(x, z), f = 1 + 0.022 * SS(1.32, 1.12, y) * (Math.sin(a * 7 + 0.4) * 0.7 + Math.sin(a * 13 + 1.9) * 0.3);
+        x *= f; z *= f; if (z > 0) z += 0.01 * SS(1.18, 1.3, y) * (1 - SS(1.36, 1.44, y));
+      } else {
       if (z > 0) z += 0.018 * SS(1.18, 1.3, y) * (1 - SS(1.36, 1.44, y)) * G((Math.abs(x) - 0.08) / 0.09); // chest
       if (z > 0) z += 0.012 * SS(0.92, 1.0, y) * (1 - SS(1.06, 1.14, y)) * G(x / 0.1); // belly
       if (z < 0) z -= 0.01 * SS(1.22, 1.32, y) * (1 - SS(1.38, 1.44, y)) * G((Math.abs(x) - 0.07) / 0.06);
+      }
       p.setXYZ(i, x, y, z);
     }
     g.computeVertexNormals();
-    skinByY(g, (y) => y < 1.04 ? [[I.hips, 1]] : y < 1.22 ? blend2(I.hips, I.spine, 1.04, 1.22, y).concat() : y < 1.42 ? blend2(I.spine, I.chest, 1.22, 1.36, y) : blend2(I.chest, I.neck, 1.44, 1.52, y));
-    addSkinned(g, M.skin, 'torso');
-  }
+    skinByY(g, torsoW);
+    return g;
+  };
+  addSkinned(torsoGeo(), M.skin, 'torso');
   // ---------- neck ----------
   {
     const g = limbGeo(0.2, prof([[0, 0.072], [0.08, 0.066], [0.2, 0.066]]), // d is measured down from the top: the top (inside the head) follows the head, the base follows the chest
@@ -229,7 +246,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08 } = {
     addSkinned(g, M.skin);
   }
   // ---------- linen kilt (shendyt): pleated, flared, follows the thighs at the hem ----------
-  {
+  if (outfit === 'kilt') {
     const pts = [];
     for (let i = 40; i >= 0; i--) { const k = i / 40; const y = 1.05 - k * 0.47; pts.push([0.168 + 0.022 * Math.sin(k * 3) + 0.05 * k * k + 0.025 * k, y]); } // bottom -> top (a fairly straight kilt)
     const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 96);
@@ -251,9 +268,43 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08 } = {
     const hk = new Float32Array(p.count); for (let i = 0; i < p.count; i++) hk[i] = SS(1.0, 0.6, p.getY(i)); g.setAttribute('hemk', new THREE.BufferAttribute(hk, 1));
     addSkinned(g, M.cloth, 'kilt');
   }
+  // ---------- tunic: body shell (the torso's own shape, pushed out, same weights), a skirt that swings on the kilt bone,
+  // short sleeves on the upper arms. Open at the neck and the hem; the belt hides the seam at the waist. ----------
+  if (outfit === 'tunic') {
+    addSkinned(torsoGeo(0.02, 0.99, 1.492, false, true), M.wool, 'tunic');
+    const pts = [];
+    for (let i = 40; i >= 0; i--) { const k = i / 40; const y = 1.06 - k * 0.47; pts.push([0.172 + 0.02 * Math.sin(k * 3) + 0.045 * k * k + 0.02 * k, y]); } // bottom -> top
+    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 96);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const a = Math.atan2(x, z), k = (1.06 - y) / 0.47;
+      const fold = 1 + 0.03 * k * Math.sin(a * 9 + 0.6) + 0.015 * k * Math.sin(a * 5 + 2.1); // soft wool folds, not pleats
+      x *= 1.14 * fold; z *= 0.8 * fold;
+      p.setXYZ(i, x, y - 0.015 * k * k * Math.cos(a), z);
+    }
+    g.computeVertexNormals();
+    skinByY(g, (y, x) => {
+      const k = SS(1.03, 0.75, y) * 0.7 * Math.min(1, Math.abs(x) / 0.07); const leg = x > 0 ? I.lHip : I.rHip;
+      const h = (1 - k) * 0.75 * SS(1.0, 0.62, y);
+      return [[I.hips, 1 - k - h], [leg, k], [I.kilt, h]];
+    });
+    const hk = new Float32Array(p.count); for (let i = 0; i < p.count; i++) hk[i] = SS(1.0, 0.6, p.getY(i)); g.setAttribute('hemk', new THREE.BufferAttribute(hk, 1));
+    addSkinned(g, M.cloth, 'kilt'); // named 'kilt' so the kilt probes and F.kilt() work on it too
+    for (const s of ['l', 'r']) { // short sleeves: open at the elbow end, the top tucks into the shell
+      // wide enough to carry the shoulder line down past the armpit (a T-tunic), so the arm comes out of the sleeve's hem,
+      // not from under the body of the tunic
+      const sh = wpos(s + 'Sh'), L = 0.21, sp = [];
+      for (let i = 0; i <= 14; i++) { const d = L - (i / 14) * L; sp.push([0.078 + 0.014 * (d / L), -d]); }
+      for (let i = 1; i <= 8; i++) { const a = (i / 8) * Math.PI / 2; sp.push([Math.max(1e-4, 0.078 * Math.cos(a)), 0.066 * Math.sin(a)]); } // dome over the arm's shoulder cap
+      const sg = new THREE.LatheGeometry(sp.map(([a, b]) => new THREE.Vector2(a, b)), 32); sg.scale(1, 1, 0.92);
+      skinByY(sg, () => [[I[s + 'Sh'], 1]]); sg.translate(sh.x, sh.y, sh.z);
+      addSkinned(sg, M.wool, 'sleeve');
+    }
+  }
   // belt sash (rigid, on the hips)
   {
-    const g = new THREE.TorusGeometry(0.163, 0.012, 10, 64); g.rotateX(Math.PI / 2); g.scale(1.17, 1.6, 0.8);
+    const g = new THREE.TorusGeometry(0.163, 0.012, 10, 64); g.rotateX(Math.PI / 2); if (outfit === 'tunic') g.scale(1.29, 1.5, 0.95); else g.scale(1.17, 1.6, 0.8); // over the tunic's skirt top
     const m = new THREE.Mesh(g, M.belt); m.position.y = 0.065; m.castShadow = true; B.hips.add(m);
     const knot = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 12), M.belt); knot.scale.set(1.1, 0.8, 0.6); knot.position.set(0.06, 0.062, 0.118); B.hips.add(knot);
   }

@@ -6,6 +6,7 @@ import { farmer2 } from './farm2.js';
 import { materials } from './materials.js';
 import { glowSprite } from './props.js';
 import { rng, fabricTexture } from './textures.js';
+import { romanMats, column2, worldUV } from './roman.js';
 
 const shadowAll = (o) => { o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } }); return o; };
 const canvasTex = (w, h, draw, repeat = null) => {
@@ -136,23 +137,23 @@ export function archMats() {
     x.fillStyle = '#d9cdb6'; x.fillRect(0, 0, 256, 256);
     for (let k = 0; k < 4; k++) { const m = 28 + k * 22; x.fillStyle = `rgb(${200 - k * 22},${188 - k * 22},${166 - k * 22})`; x.fillRect(m, m, 256 - 2 * m, 256 - 2 * m); }
   }, [28, 5]);
+  // v1.2: stone, brick, marble, wood and roof tiles come from the detailed Roman materials (roman.js); builders below
+  // give their meshes world-scale UVs (worldUVAll) so the textures keep their real size
+  const R2 = romanMats();
   AM = {
-    stone: new THREE.MeshStandardMaterial({ map: travertine, roughness: 0.85, bumpMap: travertine, bumpScale: 1.5 }),
-    brick: new THREE.MeshStandardMaterial({ map: brick, roughness: 0.9, bumpMap: brick, bumpScale: 2 }),
+    stone: R2.stone, brick: R2.brick, marble: R2.marble, wood: R2.woodH, roofTile: R2.roof, // formwork and troughs are horizontal boards
     lead: new THREE.MeshStandardMaterial({ color: 0x8c9196, roughness: 0.55, metalness: 0.3 }),
     coffer: new THREE.MeshStandardMaterial({ map: coffer, roughness: 0.9, bumpMap: coffer, bumpScale: 4, side: THREE.BackSide }),
-    marble: new THREE.MeshStandardMaterial({ color: 0xc9b9a0, roughness: 0.45 }),
-    wood: new THREE.MeshStandardMaterial({ color: 0x8a5d34, roughness: 0.8, bumpMap: fabricTexture(5), bumpScale: 2 }),
-    roofTile: new THREE.MeshStandardMaterial({ color: 0xa4532e, roughness: 0.75 }),
   };
   return AM;
 }
-function column(h, r, mat) {
-  const g = new THREE.Group();
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r, h, 20), mat); shaft.position.y = h / 2; g.add(shaft);
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.2, r * 1.3, h * 0.05, 20), mat); base.position.y = h * 0.025; g.add(base);
-  const capi = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.35, r * 0.9, h * 0.08, 20), mat); capi.position.y = h - h * 0.04; g.add(capi);
-  const ab = new THREE.Mesh(new THREE.BoxGeometry(r * 2.8, h * 0.03, r * 2.8), mat); ab.position.y = h + h * 0.015; g.add(ab);
+// v1.2: fluted column with entasis and an Attic base (roman.js), same footprint and height as before
+function column(h, r, mat) { return column2(h * 1.03, r, mat, { flutes: 16 }); }
+// world-scale UVs on every mesh of a builder that uses the tiled Roman materials (tile = metres per texture repeat,
+// scaled for builders that are not at 1 unit = 1 m)
+function worldUVAll(g, tile) {
+  const A = archMats(), tiled = new Set([A.stone, A.brick, A.marble, A.wood, A.roofTile]);
+  g.traverse(o => { if (o.isMesh && tiled.has(o.material) && !o.userData.uvDone) { o.geometry = o.geometry.clone(); o.geometry.applyMatrix4(new THREE.Matrix4().makeScale(o.scale.x, o.scale.y, o.scale.z)); worldUV(o.geometry, tile); o.geometry.applyMatrix4(new THREE.Matrix4().makeScale(1 / o.scale.x, 1 / o.scale.y, 1 / o.scale.z)); o.userData.uvDone = true; } });
   return g;
 }
 // Pantheon at real-ish proportions scaled to 1 unit = 1 m / 10 (rotunda 43 m wide -> r 2.17)
@@ -181,7 +182,7 @@ export function pantheon() {
   const door = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.9), new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 1 })); door.position.set(0, 0.63, 0.005); P.add(door);
   // piazza
   const pz = new THREE.Mesh(new THREE.CircleGeometry(14, 64), new THREE.MeshStandardMaterial({ color: 0xbfae92, roughness: 0.95, bumpMap: fabricTexture(9), bumpScale: 2 })); pz.rotation.x = -Math.PI / 2; pz.position.y = 0.002; g.add(pz);
-  shadowAll(g);
+  worldUVAll(g, 0.24); shadowAll(g);
   return g;
 }
 // inside the dome: coffered hemisphere, oculus with a light shaft and a sunlit disc on the floor
@@ -203,7 +204,7 @@ export function pantheonInterior() {
   const spot = new THREE.Mesh(new THREE.CircleGeometry(0.33, 40), new THREE.MeshBasicMaterial({ color: 0xffe9c0, transparent: true, opacity: 0.35, depthWrite: false })); spot.rotation.x = -Math.PI / 2; spot.scale.set(1.3, 1, 1); spot.position.set(-0.3, R * 0.95, 0.2); spot.position.y = 0; g.add(spot);
   spot.position.set(1.05, 0.004, 0.55); spot.rotation.z = 0.3;
   g.userData.shaft = shaft;
-  shadowAll(g); floor.castShadow = false;
+  worldUVAll(g, 0.24); shadowAll(g); floor.castShadow = false;
   return g;
 }
 // aqueduct: arcade extruded from a shape with arched openings
@@ -221,7 +222,7 @@ export function aqueduct(n = 8, { span = 2.2, h = 3.6, depth = 0.8 } = {}) {
   const m = new THREE.Mesh(geo, A.stone);
   const g = new THREE.Group(); g.add(m);
   const cap = new THREE.Mesh(new THREE.BoxGeometry(W, 0.18, depth + 0.12), A.stone); cap.position.y = h + 0.09; g.add(cap);
-  shadowAll(g);
+  worldUVAll(g, 2.4); shadowAll(g);
   return g;
 }
 // wooden formwork box (two side boards + end boards + stakes)
@@ -231,7 +232,7 @@ export function formwork(len = 1.6, h = 0.5, w = 0.4) {
     for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(len, h / 3 - 0.008, 0.03), A.wood); b.position.set(0, h / 6 + i * h / 3, s * (w / 2 + 0.015)); g.add(b); }
     for (let i = 0; i < 4; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.04, h + 0.15, 0.04), A.wood); st.position.set(-len / 2 + 0.1 + i * (len - 0.2) / 3, (h + 0.15) / 2, s * (w / 2 + 0.05)); g.add(st); }
   }
-  shadowAll(g);
+  worldUVAll(g, 1.2); shadowAll(g);
   return g;
 }
 // trough of quicklime: wooden box, white lumpy bed, water layer that rises, steam + glow
@@ -262,7 +263,7 @@ export function quicklimeTrough() {
     bub.instanceMatrix.needsUpdate = true;
   };
   g.set(0, 0, 0);
-  shadowAll(g); water.castShadow = false;
+  worldUVAll(g, 1.2); shadowAll(g); water.castShadow = false;
   return g;
 }
 // jagged crack ribbon in a vertical face (x-y plane at z), grows from the top by k (0..1)

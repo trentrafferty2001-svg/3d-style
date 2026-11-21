@@ -55,6 +55,27 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - The existing sky lighting (PMREM), cool rim, warm bounce, vignette and grade are kept; item 6's "rim light" is done in
   the skin shader, so it works from every camera angle.
 
+### Roman set (v1.2.0, Nov 2026)
+
+- **`roman.js`**: detailed tileable materials made in code (travertine ashlar with chamfered joints, pores and weathering;
+  Roman brick with thick mortar; polygonal basalt paving worn smooth; marble or stucco with faint veins; plaster with
+  stains, hairline cracks and fallen patches; wooden planks; terracotta roof tiles; dusty ground), each with colour,
+  bump and roughness. `worldUV(geo, tile)` gives any geometry real-size UVs, so a kerb and a wall show the stone at
+  the same scale. `block()` (rounded edges), `column2()` (Attic base, fluted shaft with entasis, Tuscan capital),
+  `amphora()`, `settle()` (rests an object on the ground by its exact lowest point).
+- **`romanSite()`**: a Roman street, 1 unit = 1 m. Basalt road with a crown and Pompeii stepping stones, kerbs, travertine
+  pavements, a fluted portico with a tiled lean-to roof, an ochre plaster wall with a painted dado, shop doors with
+  shutters and windows, amphorae, an olive tree, cypresses and umbrella pines in the wind, grass and weeds. Layout
+  constants are in `RS`; `romanHeightAt(x, z)` is the walkable top, and `site.userData.groundAt` raycasts the real meshes.
+- **Character:** `toon({ outfit: 'tunic' })` (or `romanWorker()`) gives a belted wool tunic: the torso's own shape
+  pushed out, loose (no muscles showing, soft folds, a little blousing over the belt), with the same skin weights so it
+  follows every bend. The skirt swings on the kilt bone, and the sleeves are wide enough that the arms come out of their hems.
+- **`rome.js`** keeps its API (Pantheon, aqueduct, formwork, quicklime trough, columns), now built with the new
+  materials, fluted columns and world-scale UVs.
+- **Test scene** `shots_rm.js` (5.5 s): a crane-down to a worker on the pavement who points down the street, then a close-up.
+  **QA:** `probe_rome.mjs` (every prop's lowest points and every plant against the ground under it, soles, palms vs cloth).
+  Sound for test clips: `scripts/make_ambience.py` (wind, cicadas, birds, one-shots such as an earshot whoosh on a cut).
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -134,6 +155,15 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 - Clearcoat on dozens of droplets, or a glossy water surface facing the sun, blooms into haze. Keep drops at
   roughness 0.3; the sanitise pass catches the rest.
 - Ropes must reach the bucket's bail; hands must grip within reach (check with the probe, not by eye).
+- Never put a `//` comment in the middle of a line of code when editing: it silently swallows the rest of the line.
+  It happened three times (the v1.0.0 rope; twice while building the Roman set, once as a syntax error and once
+  hidden). After editing, run `node --check` on a `.mjs` copy of each changed module, then read the changed lines.
+- A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
+  form, `setFromObject(o, true)`, or props float by several cm.
+- Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built
+  from: a 1 m grid differs from the function by several cm, and a ramp down to a pavement edge left grass floating 4.6 cm.
+- Cloth over arms: a hanging hand beside a full skirt needs to sit clear of it (`probe_rome.mjs` palm check), and a
+  spring that undershoots must be clamped where an undershoot pushes a hand into the body.
 - Flat "plastic" skin was chroma, not lighting: turning fill and rim up or down barely changed it, while a grey test
   (`sat: 0`) showed the face had plenty of shape. Test the extreme value first to prove a setting is wired up and to
   see which knob matters.

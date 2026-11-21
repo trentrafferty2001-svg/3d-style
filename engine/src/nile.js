@@ -258,7 +258,7 @@ export const tipAt = (a) => new THREE.Vector3(0, PIV.y - L1 * Math.sin(a) - 0.02
 // wind sway for instanced plants: bend grows with height, gusts travel across the field
 // radial: sway grows with distance from the mesh origin (palm fronds built around the crown, which never moves);
 // otherwise with height above the origin (grass, reeds rooted at y = 0). Gust phase comes from world position.
-function windMaterial(base, { amp = 0.12, freq = 1.3, radial = false } = {}) {
+export function windMaterial(base, { amp = 0.12, freq = 1.3, radial = false } = {}) {
   // three.js caches programs by onBeforeCompile's source text, which is the same for every wind setting: without a
   // distinct key, grass, papyrus and palms could all end up with whichever variant compiled first
   base.customProgramCacheKey = () => `wind:${amp}:${freq}:${radial}`;
@@ -275,7 +275,7 @@ function windMaterial(base, { amp = 0.12, freq = 1.3, radial = false } = {}) {
   return base;
 }
 // matching shadow-pass material, so swaying plants cast swaying shadows
-function windDepth(opts) { return windMaterial(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide }), opts); }
+export function windDepth(opts) { return windMaterial(new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide }), opts); }
 function bladeTuft(blades = 9, h = 0.32, seed = 1) {
   const r = rng(seed); const pos = [], col = [], idx = []; let v0 = 0;
   for (let b = 0; b < blades; b++) {
