@@ -69,7 +69,7 @@ export function indusMats() {
   return _IM;
 }
 // UVs around a cylinder or lathe: u along the circumference (m), v up (m), so bricks keep their size on a round well
-function cylUV(geo, tile) {
+export function cylUV(geo, tile) {
   const p = geo.attributes.position, uv = new Float32Array(p.count * 2);
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), r = Math.hypot(x, z); uv[i * 2] = Math.atan2(x, z) * Math.max(r, 0.3) / tile; uv[i * 2 + 1] = p.getY(i) / tile; }
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); return geo;

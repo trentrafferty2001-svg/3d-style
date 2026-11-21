@@ -13,19 +13,20 @@ const glslVec2 = (v) => `vec2(${v[0].toFixed(4)}, ${v[1].toFixed(4)})`;
 export function flowWaterMaterial({ color = 0x2a3a30, foam = 0xe4e8de, flow = [-1, 0], speed = 0.55, scale = 9, impacts = [], ripple = 1.0, env = 0.7 } = {}) {
   const m = new THREE.MeshStandardMaterial({ color, roughness: 0.07, metalness: 0, envMapIntensity: env });
   const f = new THREE.Vector2(...flow).normalize(), imps = impacts.slice(0, 2);
+  m.userData.uImp = { value: 1 }; // impact strength 0..1: set m.userData.uImp.value = 0 while nothing is landing (rings and foam fade out)
   const key = `flowWater:${f.x.toFixed(3)},${f.y.toFixed(3)}:${speed}:${scale}:${ripple}:${imps.map(p => p.join(',')).join(';')}`;
   m.customProgramCacheKey = () => key;
   m.onBeforeCompile = (sh) => {
-    sh.uniforms.uTime = TIME; sh.uniforms.uFoam = { value: new THREE.Color(foam) };
+    sh.uniforms.uTime = TIME; sh.uniforms.uFoam = { value: new THREE.Color(foam) }; sh.uniforms.uImp = m.userData.uImp;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPw;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvWPw = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     const F = glslVec2([f.x, f.y]), S = speed.toFixed(3), SC = scale.toFixed(2);
-    const ringTerms = imps.map(p => `{ vec2 d = p - ${glslVec2(p)}; float r = length(d); h += 0.55 * sin(r * 85.0 - uTime * 17.0) * exp(-r * 11.0) + 0.35 * (fbm(p * 40.0 + uTime * 3.0) - 0.5) * exp(-r * 14.0); }`).join('\n');
+    const ringTerms = imps.map(p => `{ vec2 d = p - ${glslVec2(p)}; float r = length(d); h += uImp * (0.55 * sin(r * 85.0 - uTime * 17.0) * exp(-r * 11.0) + 0.35 * (fbm(p * 40.0 + uTime * 3.0) - 0.5) * exp(-r * 14.0)); }`).join('\n');
     const foamTerms = imps.map(p => `{ vec2 d = p - ${glslVec2(p)}; float along = dot(d, FL), across = dot(d, vec2(-FL.y, FL.x));
         fm += 1.2 * exp(-dot(d, d) / 0.0018) + 0.8 * exp(-across * across / (0.0005 + 0.0018 * max(along, 0.0))) * smoothstep(-0.03, 0.03, along) * exp(-max(along, 0.0) / 0.35); }`).join('\n');
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-        varying vec3 vWPw; uniform float uTime; uniform vec3 uFoam;
+        varying vec3 vWPw; uniform float uTime, uImp; uniform vec3 uFoam;
         ${NOISE}
         const vec2 FL = ${F};
         float wH(vec2 p) { // height: two layers of ripples carried along the flow at different speeds, plus impact rings
@@ -35,7 +36,7 @@ export function flowWaterMaterial({ color = 0x2a3a30, foam = 0xe4e8de, flow = [-
         float wFoam(vec2 p) { float fm = 0.0;
           ${foamTerms}
           float n = fbm(p * 34.0 - FL * uTime * ${S} * 34.0) * 0.7 + fbm(p * 90.0 - FL * uTime * ${S} * 90.0) * 0.3;
-          return clamp(fm, 0.0, 1.0) * smoothstep(0.42, 0.64, n); }`) // foam only at the landing point and a thin wake (more read as snow)
+          return clamp(fm * uImp, 0.0, 1.0) * smoothstep(0.42, 0.64, n); }`) // foam only at the landing point and a thin wake (more read as snow)
       .replace('#include <color_fragment>', `#include <color_fragment>
         float wFm = wFoam(vWPw.xz); diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, wFm * 0.85);`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>

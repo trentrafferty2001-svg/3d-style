@@ -122,6 +122,21 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   runners; close-up of the water hitting the sand and the patch spreading. Everything follows the poses: the jar is
   between the hands, the stream leaves its mouth under gravity, the rope runs through the haulers' grips.
 
+### Persia set (v1.5.0, Nov 2026)
+
+- **`persia.js`** keeps its API (yakhchal whole and cut-away, shade wall, freezing channel, qanat wells, desert ground,
+  palms, ice) with code-made materials (`persiaMats()`: kahgel, the mud-and-straw plaster of Yazd; adobe brick; a
+  red-ochre desert floor; dressed stone), lathe domes with round UVs (`cylUV` from indus.js) and world-scale UVs elsewhere.
+  `palm()` now returns the Nile set's swaying date palm (the old flat-frond one is `palmOld`). The old `persianWorker()`
+  (previous rig) stays; new `persianWorker2()` is the current character in a tunic and white cap.
+- **`persiaSite()`**: a Yazd lane. Kahgel walls with patches worn back to the adobe, double wooden doors in arched niches,
+  windows, windcatchers (towers with slatted vents) and a dome above the roofs, a yakhchal and palms beyond, desert dunes
+  and mountains; a stone jub along the lane with flowing qanat water, fed by a stone spout at 1.5 m. Its stream ends in
+  the jub (rings, foam and splash) or in whatever is held under it: `site.userData.streamTo(y)`, and
+  `jubWater.userData.uImp` fades the rings and foam out when nothing lands. Layout in `PS`.
+- **Test scene** `shots_pe.js` (5.5 s): a crane down from the windcatchers to a worker who lifts his jar under the spout;
+  close on the jar filling.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
