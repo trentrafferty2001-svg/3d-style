@@ -27,7 +27,7 @@ const out = await pg.evaluate(async () => {
   }
   // 2. instanced plants: origin vs ground
   const M = new THREE.Matrix4(), P = new THREE.Vector3();
-  S.traverse(o => { if (!o.isInstancedMesh) return; let fl = -1, n = 0;
+  S.traverse(o => { if (!o.isInstancedMesh || o.userData.noGround) return; let fl = -1, n = 0; // (noGround: splash drops and other airborne effects)
     for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, M); P.setFromMatrixPosition(M).applyMatrix4(o.matrixWorld); const g = groundAt(P.x, P.z); if (g == null) continue; n++; fl = Math.max(fl, P.y - g); }
     if (fl > 0.02) { ok = false; log.push(`FLOAT instanced (${o.count}): an origin ${(fl * 100).toFixed(1)} cm above the ground`); } else log.push(`  ok instanced (${o.count}, ${n} over ground): highest origin ${(fl * 100).toFixed(1)} cm vs ground`); });
   // 3 + 4 over the clip

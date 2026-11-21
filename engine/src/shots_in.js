@@ -18,6 +18,7 @@ function world(makeStage) {
   const rim = new THREE.DirectionalLight(0xbfd4ff, 0.5); rim.position.set(-6, 4, 1); scene.add(rim);
   const bounce = new THREE.DirectionalLight(0xd9a068, 0.45); bounce.position.set(0.3, -1, 0.2); scene.add(bounce);
   const site = indusSite({ seed: 2 }); scene.add(site);
+  (scene.userData.updaters = scene.userData.updaters || []).push((t) => site.userData.update(t)); // splash droplets
   return { scene, site };
 }
 

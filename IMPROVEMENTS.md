@@ -21,7 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.3.0 is released (item 2, second set: the Indus city for the Mohenjo-daro video), waiting for the owner's verdict.
+v1.3.1 is released: realistic water (`water.js`, a first part of item 5) after the owner asked for the Indus drain's water
+to be fixed (21 Nov). v1.3.0 (Indus set) before it.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
@@ -115,3 +116,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   raycast at the origin), palms against the kilt's flare, a worker who read as turning his back (head bowed too far),
   and water hidden in the drain's shadow. Kaggle: 0.68 s a frame. Kaggle's one-pass loudness gave -15.4 LUFS; the mix was
   remastered to -14 with the two-pass chain.
+- **21 Nov 2026 (cont.):** Owner: the water in the Indus clip has to be fixed (a milky rod pouring onto flat paint). Built
+  `water.js` (flowing surface with impact rings and foam, see-through tapering stream with streaks, splash droplets)
+  and a thick-walled pipe. Also asked whether these sets are what future videos build on: yes, the set builders and
+  materials are; the short test scenes are demos.

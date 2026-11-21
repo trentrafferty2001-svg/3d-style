@@ -3,6 +3,15 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.3.1 (21 Nov 2026) = commit afdc60ca1e3df75a91d4645544a345022620f5d7
+Water fix requested by the owner (the Indus drain's water read as a milky rod onto flat paint). Channels stay on v1.0.0.
+
+- `water.js` (new, reusable): `flowWaterMaterial` (ripples carried along a flow, impact rings, foam at the landing
+  point with a thin wake, murky body, controllable reflections), `streamMaterial` (see-through tapering stream with
+  bright edges, streaks and break-up), `splash` (seeded droplets, pure function of time).
+- `indus.js`: the drain uses them; the stream leaves the pipe's lip in a parabola and lands on the foam; the pipe has an
+  inner bore and a rim. `probe_rome.mjs` skips airborne effects (`userData.noGround`).
+
 ## v1.3.0 (21 Nov 2026) = commit 4f243cb8cf3c9e37078d086ff10992b5ca1f9492
 Indus set (backlog item 2, second set). The channels stay on v1.0.0 until the owner moves them.
 

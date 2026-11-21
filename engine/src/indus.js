@@ -5,7 +5,7 @@
 // UVs, rounded blocks, settle) and placed on the real ground.
 import * as THREE from 'three';
 import { fbm, rng, grass, mats as nileMats } from './nile.js';
-import { waterMaterial, TIME } from './world.js';
+import { flowWaterMaterial, streamMaterial, splash } from './water.js';
 import { toon } from './toon.js';
 import { triTex, tfbm, voro, courses, jointDist, h2, std, worldUV, block, settle, smoothstepAB as SS, instanced, leafMat, oliveGeo, oliveTrunk } from './roman.js';
 
@@ -93,6 +93,7 @@ export function indusHeightAt(x, z) {
   return earthY(x, z);
 }
 export function indusSite({ seed = 2 } = {}) {
+  const updaters = []; // per-(sub)frame updates (splash droplets): the scene calls site.userData.update(t)
   const M = indusMats(), g = new THREE.Group(), R = rng(seed), props = [], ground = [], X = IS.X, H = IS.half, dz = IS.drainZ, dw = IS.drainW;
   // base earth everywhere (under and beyond)
   const base = new THREE.Mesh(worldUV(new THREE.PlaneGeometry(120, 120, 1, 1).rotateX(-Math.PI / 2), 4), M.earth); base.position.y = -0.4; g.add(base);
@@ -105,7 +106,9 @@ export function indusSite({ seed = 2 } = {}) {
   for (const s of [-1, 1]) { const w = block(2 * X + 2, 0.36, 0.12, M.brick, { r: 0.01, tile: 1.2, at: [0, 0.035 - 0.18, dz + s * (dw / 2 + 0.06)] }); g.add(w); ground.push(w); }
   g.add(block(2 * X + 2, 0.06, dw + 0.02, M.brick, { r: 0.005, tile: 1.2, at: [0, -0.33, dz] }));
   // water runs high in the channel so it shows through the open cover (lower down it sat in shadow below the sight line)
-  const WL = -0.1, wm = waterMaterial({ color: 0x5a6a55, opacity: 1, ripple: 1.4 }); wm.roughness = 0.1;
+  // where the pipe's stream lands (see the pipe below): a parabola from the mouth's lower lip
+  const WL = -0.1, SY0 = 0.3 - 0.045, SZ0 = dz - 0.07, SV0 = 0.45, ST = Math.sqrt(2 * (SY0 - WL) / 9.8), LAND = [IS.gapX, SZ0 + SV0 * ST];
+  const wm = flowWaterMaterial({ color: 0x343a2a, flow: [-1, 0], speed: 0.5, scale: 9, impacts: [LAND], env: 0.55 }); // murky green-brown drain water; enough reflection to show the ripples
   const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * X + 2, dw, 1, 1).rotateX(-Math.PI / 2), wm); water.position.set(0, WL, dz); g.add(water);
   const cw = 0.52, gap = [IS.gapX - cw / 2, IS.gapX + cw / 2];
   for (let x = -X - 1 + cw / 2; x < X + 1; x += cw) {
@@ -154,23 +157,20 @@ export function indusSite({ seed = 2 } = {}) {
     const curve = new THREE.CatmullRomCurve3([[px, 3.6, -H - 0.3], [px, 3.45, wz], [px, 3.2, wz], [px, 0.55, wz], [px, 0.34, wz + 0.06], [px, 0.3, dz - 0.04]].map(p => new THREE.Vector3(...p)), false, 'catmullrom', 0.2);
     const pg = new THREE.TubeGeometry(curve, 80, 0.07, 16, false); const pipe = new THREE.Mesh(pg, M.terracotta); g.add(pipe);
     for (let k = 0.08; k < 0.97; k += 0.16) { const p = curve.getPointAt(k), tg = curve.getTangentAt(k); const col = new THREE.Mesh(new THREE.TorusGeometry(0.074, 0.014, 8, 24), M.terracotta); col.position.copy(p); col.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tg); g.add(col); }
-    const sw = waterMaterial({ color: 0x8a9a8a, opacity: 1, ripple: 2.5 }); sw.roughness = 0.1;
-    // the stream: thin, pale and partly see-through, wavering a little (vertex wobble driven by time)
-    const sm = new THREE.MeshStandardMaterial({ color: 0xcfe0d8, roughness: 0.12, transparent: true, opacity: 0.42, depthWrite: false });
-    sm.customProgramCacheKey = () => 'indusStream';
-    sm.onBeforeCompile = (sh) => { sh.uniforms.uTime = TIME; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\n float fall = 0.2 - position.y; transformed.x += sin(uTime * 23.0 + position.y * 31.0) * 0.004 * fall; transformed.z += sin(uTime * 17.0 + position.y * 27.0 + 1.3) * 0.003 * fall;'); };
-    // a parabola from just inside the mouth's lower lip (water leaves along the pipe, +z, then falls) down into the water
-    const y0 = 0.3 - 0.045, z0 = dz - 0.07, v0 = 0.45, T = Math.sqrt(2 * (y0 - WL + 0.01) / 9.8), arc = [];
-    for (let i = 0; i <= 16; i++) { const tt = T * i / 16; arc.push(new THREE.Vector3(px, y0 - 4.9 * tt * tt, z0 + v0 * tt)); }
-    const stream = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc), 32, 0.011, 10, false), sm); stream.castShadow = false; g.add(stream);
-    void sw; }
+    // a thick-walled pipe: dark inner bore and a rim at the mouth (a bare tube read as paper-thin)
+    const inner = new THREE.Mesh(new THREE.TubeGeometry(curve, 80, 0.056, 16, false), new THREE.MeshStandardMaterial({ color: 0x3a1c10, roughness: 1, side: THREE.BackSide })); g.add(inner);
+    { const p = curve.getPointAt(1), tg = curve.getTangentAt(1); const lip = new THREE.Mesh(new THREE.TorusGeometry(0.064, 0.009, 8, 32), M.terracotta); lip.position.copy(p); lip.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tg); g.add(lip); }
+    // the stream: a parabola from inside the mouth's lower lip, leaving along the pipe (+z) and falling into the drain
+    const arc = []; for (let i = 0; i <= 20; i++) { const tt = ST * i / 20; arc.push(new THREE.Vector3(px, SY0 - 4.9 * tt * tt, SZ0 + SV0 * tt)); }
+    const stream = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc), 40, 0.012, 12, false), streamMaterial({ speed: 9, breakup: 0.75, taper: 0.005 })); stream.castShadow = false; g.add(stream);
+    const sp = splash(new THREE.Vector3(LAND[0], WL + 0.004, LAND[1]), { surfaceY: WL, n: 26, size: 0.006, spread: 0.3, up: 0.75 }); g.add(sp); updaters.push(sp.update); }
   // weeds along the wall bases and in the square's corners
   const gs = [];
   for (let i = 0; i < 160; i++) { const x = (R() - 0.5) * 2 * X, side = R() < 0.5 ? -1 : 1, z = side * (H - 0.06 - R() * 0.12); if (side < 0 && Math.abs(x - IS.gapX) < 0.8) continue; gs.push([x, groundAt(x, z) - 0.005, z, 0.35 + R() * 0.4]); }
   for (let i = 0; i < 30; i++) { const x = IS.sq[0] + 0.1 + R() * (sqW - 0.2), z = IS.sqZ + 0.1 + R() * 0.25; gs.push([x, -0.005, z, 0.3 + R() * 0.3]); }
   g.add(grass(gs, { h: 0.26, seed: 21, color: 0xc8c090 }));
   shadowAll(g); water.castShadow = false; base.castShadow = false;
-  g.userData = { ground, props, heightAt: indusHeightAt, groundAt, doors: doorAt };
+  g.userData = { ground, props, heightAt: indusHeightAt, groundAt, doors: doorAt, update: (t) => updaters.forEach(u => u(t)) };
   return g;
 }
 
