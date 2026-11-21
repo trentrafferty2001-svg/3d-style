@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.8.0 (21 Nov 2026) = commit PENDING
+## v1.8.0 (21 Nov 2026) = commit 7f4305f2733028255136c01cda2c8951f14fe426
 Hands (backlog item 3). The channels stay on v1.0.0 until the owner moves them.
 
 - `toon.js`: three-joint fingers and a two-joint thumb, a flatter palm; `grip()` with a relaxed cascade; the thumb is posed
