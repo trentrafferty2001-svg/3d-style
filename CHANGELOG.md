@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.6.0 (21 Nov 2026) = commit PENDING
+## v1.6.0 (21 Nov 2026) = commit 27e99269b5a60d3470e3bad46643e943bd019d5f
 Farm set: rice-fish paddies (backlog item 2, fifth and last set; item 2 is complete). The channels stay on v1.0.0 until
 the owner moves them.
 
