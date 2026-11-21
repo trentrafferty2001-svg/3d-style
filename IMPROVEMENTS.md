@@ -19,7 +19,7 @@ session log at the bottom, then commit.
 - Release: work on a branch, PR into `main`, merge (the owner allows it), then add the version to `CHANGELOG.md`
   with its full commit id (v1.0.1 fixes, v1.1.0 features). Tags can't be pushed from cloud sessions.
 
-## Status (20 Nov 2026)
+## Status (21 Nov 2026)
 
 v1.7.0 is released (item 1: lip-sync to the voice), waiting for the owner's verdict. The owner asked for items 1, 3 and 4
 in that order (21 Nov): hands (item 3) is next, then rope and cloth (item 4).

@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.7.0 (21 Nov 2026) = commit PENDING
+## v1.7.0 (21 Nov 2026) = commit c97ecb8a3c9b94ca3be757324ef925efb295e306
 Lip-sync to the voice (backlog item 1). The channels stay on v1.0.0 until the owner moves them.
 
 - `lipsync.js` (new): `lipTrack`/`lipTracks` turn a line's sound timings into mouth shapes (closures on m/b/p held two
