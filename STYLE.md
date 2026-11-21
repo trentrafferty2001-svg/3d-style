@@ -152,6 +152,21 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - **Test scene** `shots_fa.js` (5.5 s): a farmer in the paddy, hands on hips, watching two carp swim past in front of
   him; close on a carp weaving between the stems.
 
+### Lip-sync (v1.7.0, Nov 2026)
+
+- **`lipsync.js`**: the mouth follows the voice's own sounds. `kokoro_say.py` now writes every sound (phoneme) of a line
+  with its time (`phones` in timing.json, from Kokoro's predicted durations) and `plan_vo.py` carries them into
+  `src/vo_X.js` (`phones`, `audioAt`). `const talk = lipTracks(VO)` gives a mouth shape for any time;
+  `F.face({ ..., speech: talk(t) })` lays it over the expression (smile, brows and blinks still work).
+- Shapes: lips shut on m/b/p (held at least two frames, stretched into the next sound), lower lip under the top teeth
+  on f/v, rounded and toothless on o/oo/w/oi, spread on ee, open with the top teeth on ah/ai; neighbouring sounds blend
+  (co-articulation, vowels weighted so short ones still open), the jaw follows a beat behind and starts closing just
+  before a closure, and the mouth moves 40 ms before the sound (as real lips do). `talk(t).jaw` is there for small
+  head nods on stressed sounds.
+- **Probe** `scripts/probe_lips.mjs <engine> src/vo_X.js`: every m/b/p shut and seen shut on two frames or more, f/v
+  tucked, open vowels open past 6 mm, rounded sounds narrower than rest, shut in silence, no open-to-shut flips.
+- **Test scene** `shots_lp.js` (6.8 s): a Roman worker says one line to camera; chest-up, then close on the face.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -178,7 +193,8 @@ The `.mjs` scripts import `playwright`/`three` from the engine's `node_modules`:
 and run them from there (e.g. `cp scripts/probe_hands.mjs /home/claude/style2/ && node probe_hands.mjs /home/claude/style2 2.0`).
 `frame.mjs` and `search.mjs` import three from `/home/claude/deps/three`.
 
-1. Script and voice as in `HANDOFF.md` (Kokoro `af_heart`), then `scripts/plan_vo.py` writes `src/vo_X.js`.
+1. Script and voice as in `HANDOFF.md` (Kokoro `af_heart`), then `scripts/plan_vo.py` writes `src/vo_X.js` (words and
+   sounds). A character who speaks on screen gets `speech: lipTracks(VO)(t)` in its `face()` (see `shots_lp.js`).
 2. Copy `shots_dm.js` as a template and point `main.js` at it. Keep every function of time pure: anything that needs
    history (pendulums, hand-over-hand grips, crossings) is simulated once into a table when the shot is built.
 3. Frame cameras with numbers, not guesses: `node scripts/frame.mjs` projects key points through a camera and says
@@ -212,6 +228,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Sparkles: isolated white pixels from shading blow-ups (they hold still, so the pop scan misses them) | stills with `QS='mb=1&nodof'`, then `python3 -I scripts/sparkle_scan.py <dir>` | PASS (eye catchlights allowed) |
 | Code after a `//` comment on the same line (silently disabled) | `python3 -I scripts/swallow_scan.py` | PASS |
 | Sets: props and plants on the ground, soles and palms of every character | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` or `_FS` under `?dbg`; airborne effects set `userData.noGround`) | PASS |
+| Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
 ## Lessons from the demo (don't repeat these)
@@ -262,6 +279,14 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   layout and the camera's clearing.
 - Probes want an instance's origin on the ground: put a tree crown's offset into its geometry (`.translate`) rather than
   lifting the instance, or the probe reports a crown floating 60 cm up.
+- Lip-sync: the mouth fill (the dark inside) must sit just behind the lips. Pushed 3 mm back, the mouth hollow's skin
+  showed in front of it and an open "ah" read as a skin-coloured slot with a dark blob.
+- Stretch a too-short closure forwards, never backwards: centring a 70 ms m on a 25 ms one ate the "o" of "Rome".
+- A probe threshold must come from the real thing, not a round number. Lips can shut over one frame on m/b/p in real
+  speech; what reads as a glitch is a closure too short to be seen, so the probe checks that each one is seen shut
+  on two frames.
+- Hanging hands: with a sideways `armIK` hint the palms turned to the camera; a forward hint puts them against the
+  thighs.
 - A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
   form, `setFromObject(o, true)`, or props float by several cm.
 - Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built

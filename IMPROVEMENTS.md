@@ -21,9 +21,10 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.6.0 is released (item 2: the farm, a rice-fish paddy), waiting for the owner's verdict. With it item 2 (sets beyond the
-Nile) is complete: Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0), Egypt (v1.4.0), water (v1.3.1) and Indus
-(v1.3.0) were liked by the owner.
+v1.7.0 is released (item 1: lip-sync to the voice), waiting for the owner's verdict. The owner asked for items 1, 3 and 4
+in that order (21 Nov): hands (item 3) is next, then rope and cloth (item 4).
+v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
+Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
@@ -59,7 +60,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
    *(Done: item 2, sets: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0, Persia v1.5.0, farm v1.6.0. The loose `props*.js` builders
    were not redone: upgrade a prop when a video first needs it, with the set materials.)*
-1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
+1. *(Done in v1.7.0: lip-sync, `lipsync.js` + `probe_lips.mjs`.)* **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
 2. **Sets beyond the Nile.** January videos cover other eras and places. `rome.js`, `persia.js`, `egypt.js`,
@@ -136,3 +137,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   QA caught a face hidden by the hat brim (head bowed too far), trees that read as beige rock piles, a back light's glint
   on the water over the carp, a background carp swimming across the lens, the hero carp swimming into a dike, and tree
   crowns the probe saw floating (their offset now lives in the geometry).
+- **21 Nov 2026 (cont.):** Owner asked for items 1, 3 and 4 in order. Item 1, lip-sync (v1.7.0): Kokoro's per-sound timings
+  exported (`kokoro_say.py`, `plan_vo.py`), `lipsync.js` (shapes per sound, co-articulation, jaw lag, closures held two
+  frames), `face({ speech })`, `probe_lips.mjs`, a Roman worker talking to camera. QA caught the mouth's dark fill hidden
+  behind the hollow's skin, a stretched m eating the o of "Rome", f leaving the jaw open, a comment swallowing the loop that
+  builds the mouth opening (caught by `swallow_scan.py`), and palms turned to the camera on hanging arms.

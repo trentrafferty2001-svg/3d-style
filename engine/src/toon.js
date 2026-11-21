@@ -404,8 +404,9 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     seam.geometry.dispose(); seam.geometry = taperTube(curve(w * 0.99, yEnd, yMid), 0.0015, 0.0008); seam.visible = gap < 0.002;
     // opening: polygon between the inner curves, pushed back into the hollow
     const pts = []; for (let i = 0; i <= 24; i++) { const q = inU.getPoint(i / 24); pts.push(q); } for (let i = 24; i >= 0; i--) { const q = inL.getPoint(i / 24); pts.push(q); }
-    const pos = [], idx = []; const cx = 0, cy = (yMid); pos.push(cx, cy, -0.004);
-    pts.forEach(q => pos.push(q.x, q.y, q.z - 0.003)); for (let i = 1; i < pts.length; i++) idx.push(0, i, i + 1); idx.push(0, pts.length, 1);
+    const pos = [], idx = []; const cx = 0, cy = (yMid); pos.push(cx, cy, -0.0032);
+    // the fill sits just behind the lips: further back, the mouth hollow's skin shows in front of it
+    pts.forEach(q => pos.push(q.x, q.y, q.z - 0.0012)); for (let i = 1; i < pts.length; i++) idx.push(0, i, i + 1); idx.push(0, pts.length, 1);
     const og = new THREE.BufferGeometry(); og.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); og.setIndex(idx); og.computeVertexNormals();
     openM.geometry.dispose(); openM.geometry = og; openM.visible = gap > 0.0015; openM.material.side = THREE.DoubleSide;
     const place = (row, c, dy, sc) => row.forEach((m, i) => { const u = 0.16 + 0.68 * (i + 0.5) / 6; const p = c.getPoint(u), tg = c.getTangent(u);
@@ -512,7 +513,9 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     },
     // face: brow -1 (frown/strain) .. 1 (raised), smile -1..1, open 0..1, blink 0..1, squint 0..1
     // wide: eyes open wider (surprise, relief); oh: round open mouth (a 'phew'); flare: nostrils (effort); cheek: cheeks lift (real smile)
-    face({ brow = 0, smile = 0, open = 0, blink = 0, squint = 0, teeth = 0, wide = 0, oh = 0, flare = 0, cheek = 0 } = {}) {
+    // speech: a mouth shape from lipsync.js (lipTrack), laid over the expression: the jaw opens, lips round or spread,
+    // shut for m/b/p and tuck under the top teeth for f/v, and the top teeth show when the mouth is open
+    face({ brow = 0, smile = 0, open = 0, blink = 0, squint = 0, teeth = 0, wide = 0, oh = 0, flare = 0, cheek = 0, speech = null } = {}) {
       // brows: the group is mirrored with scale.x = s, and scale applies before rotation, so the angle carries s too.
       // angle > 0 drops the inner ends (frown / strain), < 0 lifts them (surprise / worry)
       brows.forEach((b, i) => { const s = i ? 1 : -1; b.position.y = 0.036 + brow * 0.006 - squint * 0.004; b.rotation.set(0, 0, s * (brow < 0 ? -brow * 0.35 : -brow * 0.12)); });
@@ -525,10 +528,19 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
       lows.forEach((l, i) => l.rotation.set(Math.PI - 0.3 * squint - 0.16 * cheek + 0.08 * wide + gaze[i] * 0.25, 0, 0));
       nostrils.forEach(n => n.scale.set(0.9 * (1 + 0.3 * flare), 0.7 * (1 + 0.15 * flare), 0.9));
       // gap: how far the lips part (teeth showing, an open 'oh', talking); an 'oh' also narrows the mouth
-      const gap = Math.max(open * 0.012, teeth * 0.0075, oh * 0.016);
-      const w = (0.019 + Math.max(0, smile) * 0.004) * (1 - 0.35 * oh);
-      setMouth(smile * (1 - oh), gap, w, smile < 0.25 && teeth > 0.3);
-      teethG.visible = teeth > 0.05; mouth.position.y = -0.07 + smile * 0.002;
+      let gap = Math.max(open * 0.012, teeth * 0.0075, oh * 0.016);
+      let w = (0.019 + Math.max(0, smile) * 0.004) * (1 - 0.35 * oh), sm = smile * (1 - oh), showTeeth = teeth > 0.05;
+      if (speech) {
+        const S = speech, talkGap = (S.open * 0.017 + S.jaw * 0.003 * (1 - 0.8 * S.fv) + S.oh * 0.0035) * (1 - S.press) + S.fv * 0.0022; // rounded lips part a little even with the jaw nearly shut
+        const k = Math.min(1, (S.open + S.press + S.fv + S.oh) * 4);               // how much the speech owns the mouth
+        gap = Math.max(gap * (1 - S.press) * (1 - 0.8 * S.fv), talkGap);
+        w *= 1 + k * (0.14 * S.ee - 0.5 * S.oh - 0.04 * S.press);               // spread for ee, rounded for oo, pressed for m
+        sm *= 1 - 0.6 * k * Math.max(S.oh, S.press);                            // rounding and pressing pull the corners in
+        showTeeth = showTeeth || (S.teeth > 0.25 && gap > 0.0018);
+      }
+      setMouth(sm, gap, w, smile < 0.25 && teeth > 0.3);
+      teethG.visible = showTeeth; mouth.position.y = -0.07 + smile * 0.002 - (speech ? speech.jaw * 0.0015 : 0);
+      F.mouthGap = gap; F.mouthW = w;
     },
     // swing the kilt's hem: x = forwards/back, z = sideways (radians)
     kilt(x = 0, z = 0) { B.kilt.rotation.set(x, 0, z); root.updateMatrixWorld(true); },
