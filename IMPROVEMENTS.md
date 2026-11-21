@@ -21,8 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (20 Nov 2026)
 
-v1.3.1 is released: realistic water (`water.js`, a first part of item 5) after the owner asked for the Indus drain's water
-to be fixed (21 Nov). v1.3.0 (Indus set) before it.
+v1.4.0 is released (item 2: Egypt), waiting for the owner's verdict. v1.3.1 (water; the owner likes it) and v1.3.0 (Indus)
+before it.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
 (skin, grain; the owner liked it) and v1.0.1 (fixes) before it. The channels stay on v1.0.0 until the owner moves them.
 
@@ -56,7 +56,7 @@ Shipped in v1.0.0:
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
 0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
-   *(Item 2 under way: Rome done in v1.2.0, Indus in v1.3.0; Egypt, Persia and the farm still to do.)*
+   *(Item 2 under way: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0; Persia and the farm still to do.)*
 1. **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
    from the Kokoro word timings (`src/vo_X.js`) with simple vowel/consonant shapes, plus jaw follow-through.
    *Proof:* face close-up clip with the voice; check mouth shapes against the audio frame by frame.
@@ -120,3 +120,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   `water.js` (flowing surface with impact rings and foam, see-through tapering stream with streaks, splash droplets)
   and a thick-walled pipe. Also asked whether these sets are what future videos build on: yes, the set builders and
   materials are; the short test scenes are demos.
+- **21 Nov 2026 (cont.):** Owner likes the water. Asked about Kaggle: it works; Saturday's quota reset crowds the shared
+  GPU queue, so test clips now go to Kaggle and the farm at the same time and the first one back is used. Built v1.4.0
+  (Egypt): materials, upgraded builders, `egyptSite`, a pouring scene with a wet patch. QA caught a pyramid that read as
+  a wall (too close), polka-dot sand again, a wet patch that read as a glowing puddle, and a wet patch never added to the
+  scene (a swallowing comment, now caught by `swallow_scan.py`).

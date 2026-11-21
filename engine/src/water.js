@@ -78,7 +78,7 @@ export function streamMaterial({ color = 0xb8d0c8, speed = 9.0, breakup = 0.7, t
 export function splash(at, { n = 26, surfaceY = at.y, size = 0.007, spread = 0.35, up = 0.9, seed = 3, color = 0xd8e6e0 } = {}) {
   let s = seed; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const D = [...Array(n)].map(() => ({ ph: r(), per: 0.32 + r() * 0.26, a: r() * Math.PI * 2, v: up * (0.5 + r() * 0.6), h: spread * (0.3 + r()), sz: size * (0.6 + r() * 0.8) }));
-  const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshStandardMaterial({ color, roughness: 0.3, transparent: true, opacity: 0.85 }), n);
+  const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshStandardMaterial({ color, roughness: 0.3, transparent: true, opacity: 0.45, depthWrite: false }), n); // see-through: opaque drops read as pebbles
   mesh.castShadow = false; mesh.frustumCulled = false; mesh.userData.noGround = true; // airborne by design: grounding probes skip it
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), SC = new THREE.Vector3(), VEL = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
   mesh.update = (t) => {
@@ -91,5 +91,40 @@ export function splash(at, { n = 26, surfaceY = at.y, size = 0.007, spread = 0.3
     mesh.instanceMatrix.needsUpdate = true;
   };
   mesh.update(0);
+  return mesh;
+}
+
+// wet ground: a patch that darkens and turns glossy where water has soaked in, with a ragged edge. radius(t) gives
+// its size (m) at time t, pure. Lay it 2-3 mm above the ground; call update(t) every sub-frame.
+export function wetPatch(center, radius, { color = 0x7a5e3e, y = center.y, size = 1.6, seed = 1 } = {}) {
+  // damp sand is darker with a dull sheen: a glossier patch caught the sky in its middle and read as a glowing puddle
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.55, envMapIntensity: 0.35, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  m.customProgramCacheKey = () => 'wetPatch';
+  const U = { uR: { value: 0 }, uSeed: { value: seed } };
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, U);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWUv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWUv = position.xy;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\nvarying vec2 vWUv; uniform float uR, uSeed;\n${NOISE}`)
+      .replace('#include <opaque_fragment>', `
+        { float d = length(vWUv), edge = (fbm(vWUv * 7.0 + uSeed) - 0.5) * 0.35 * uR;
+          float wet = smoothstep(uR + edge, uR * 0.55 + edge, d);   // soaked in the middle, a ragged drying edge
+          diffuseColor.a = wet * 0.82; }
+        #include <opaque_fragment>`);
+  };
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size, 1, 1), m); mesh.rotation.x = -Math.PI / 2; mesh.position.set(center.x, y, center.z);
+  mesh.castShadow = false; mesh.receiveShadow = true; mesh.userData.noGround = true;
+  mesh.update = (t) => { U.uR.value = Math.max(0, radius(t)); mesh.visible = U.uR.value > 0.002; };
+  mesh.update(0);
+  return mesh;
+}
+
+// a stream whose path changes every frame (e.g. poured from a jar in moving hands): set(points) rebuilds the tube
+export function liveStream(material, { radius = 0.011, segments = 32 } = {}) {
+  const mesh = new THREE.Mesh(new THREE.BufferGeometry(), material); mesh.castShadow = false; mesh.frustumCulled = false; mesh.userData.noGround = true;
+  mesh.set = (pts) => {
+    mesh.geometry.dispose();
+    mesh.visible = pts.length >= 2;
+    mesh.geometry = mesh.visible ? new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), segments, radius, 10, false) : new THREE.BufferGeometry();
+  };
   return mesh;
 }
