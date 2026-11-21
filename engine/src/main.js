@@ -11,6 +11,16 @@ import { SHOTS, CAPTIONS, DURATION, FADES } from './shots_dm.js';
 import * as SHX from './shots_dm.js';
 // Per-video look settings a shots file can export: STYLE = { shadow: 'pcf'|'vsm'|'soft', mb: samples, shutter: 0..1, exposure, grain: 0..0.05 }
 const STYLE = SHX.STYLE || {};
+// v1.2: bump mapping builds its normal from screen-space derivatives, which degenerate on a face seen exactly edge-on
+// (fDet -> 0): the bumped normal swung far from the surface and a few MSAA samples on the top of a door lintel lit up
+// to extreme values, a row of white dots after the highlight cap. Blend back to the true normal whenever the bumped one
+// tilts more than ~65-80 degrees away (ordinary bumps stay well inside that).
+{
+  const from = 'return normalize( abs( fDet ) * surf_norm - vGrad );';
+  if (!THREE.ShaderChunk.bumpmap_pars_fragment.includes(from)) throw new Error('bump guard: three.js bump chunk changed');
+  THREE.ShaderChunk.bumpmap_pars_fragment = THREE.ShaderChunk.bumpmap_pars_fragment.replace(from,
+    'vec3 nB = normalize( abs( fDet ) * surf_norm - vGrad ); if ( abs( fDet ) < 1e-3 || any( isnan( nB ) ) || any( isinf( nB ) ) ) return surf_norm; return normalize( mix( surf_norm, nB, smoothstep( 0.15, 0.45, dot( nB, surf_norm ) ) ) );');
+}
 import { TIME, skyMaterial as outdoorSky, SKY_PRESETS } from './world.js';
 
 const RES = Number(new URLSearchParams(location.search).get('res') || 720);
