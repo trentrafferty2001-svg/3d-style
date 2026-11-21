@@ -3,6 +3,17 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.2.0 (21 Nov 2026) = commit 64f49d79b43e21e0bb20f5292ee3326817146541
+Roman set (backlog item 2, first set). The channels stay on v1.0.0 until the owner moves them.
+
+- `roman.js`: detailed code-made Roman materials (travertine ashlar, brick, basalt paving, marble or stucco, plaster,
+  wood, roof tiles, dusty ground), `worldUV`, rounded `block`, fluted `column2`, `amphora`, `settle`, and `romanSite()`,
+  a Roman street with portico, shops, olive, cypresses and umbrella pines in the wind, all grounded; `romanWorker()`.
+- Character: `toon({ outfit: 'tunic' })`, a belted wool tunic that follows the body (loose shell, skirt on the kilt bone, sleeves).
+- `rome.js`: Pantheon, aqueduct, formwork, trough and columns rebuilt with the new materials and world-scale UVs (same API).
+- Engine: bump-normal guard in `main.js` (edge-on faces made white sparkles); `nile.js` exports its wind helpers.
+- QA: `probe_rome.mjs`, `sparkle_scan.py`, `make_ambience.py`; test scene `shots_rm.js`. The shaduf demo is unchanged.
+
 ## v1.1.0 (21 Nov 2026) = commit 9d7718b562eceac2e1c096d2d82b69a2a3c167d8
 New look features (backlog items 6 + 7). The channels stay on v1.0.0 until the owner moves them.
 
