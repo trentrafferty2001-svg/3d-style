@@ -21,8 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (21 Nov 2026)
 
-v1.7.0 is released (item 1: lip-sync to the voice), waiting for the owner's verdict. The owner asked for items 1, 3 and 4
-in that order (21 Nov): hands (item 3) is next, then rope and cloth (item 4).
+v1.8.0 is released (item 3: hands), waiting for the owner's verdict; v1.7.0 (item 1: lip-sync) before it. The owner asked
+for items 1, 3 and 4 in that order (21 Nov): rope and cloth (item 4) is next.
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
@@ -66,7 +66,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 2. **Sets beyond the Nile.** January videos cover other eras and places. `rome.js`, `persia.js`, `egypt.js`,
    `farm2.js` and `props*.js` are still at the old quality: give them the v2 treatment (detail textures, rounded
    edges, wind, grounding, cache keys). *Proof:* one test shot per set, plus `probe_qa.mjs` grounding.
-3. **Hands.** Finger curl that wraps around ropes, handles and tools, contact checked by a probe, and relaxed
+3. *(Done in v1.8.0: `F.hold`/`F.grasp`, `probe_grasp.mjs`, the hand bench.)* **Hands.** Finger curl that wraps around ropes, handles and tools, contact checked by a probe, and relaxed
    hands that aren't stiff. *Proof:* hand probe under 6 cm while gripping, plus close-up stills.
 4. **Rope and cloth as real simulation.** A verlet chain for ropes (sag, swing, slack when let go) and a baked
    cloth table for the kilt hem, both simulated once at build time so frames stay pure functions of time.
@@ -142,3 +142,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   frames), `face({ speech })`, `probe_lips.mjs`, a Roman worker talking to camera. QA caught the mouth's dark fill hidden
   behind the hollow's skin, a stretched m eating the o of "Rome", f leaving the jaw open, a comment swallowing the loop that
   builds the mouth opening (caught by `swallow_scan.py`), and palms turned to the camera on hanging arms.
+- **21 Nov 2026 (cont.):** Item 3, hands (v1.8.0): three-joint fingers, a two-joint thumb posed by direction, a flatter palm,
+  a relaxed cascade, `F.hold()` and `F.grasp()` (each joint closes until it touches the tool), `probe_grasp.mjs` and a
+  hand bench (`shots_hb.js`); a mason with chisel and mallet. QA caught the left arm 6 cm short of the chisel, the mallet
+  held like a sword (wrist bent 170 degrees), the thumb poking out of the back of the hand (there since v1.0), a thumb
+  starting inside a thick handle, and two more comments that swallowed code (caught by `swallow_scan.py`).

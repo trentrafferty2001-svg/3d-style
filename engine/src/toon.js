@@ -425,24 +425,54 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     const m = new THREE.Mesh(g, M.hair); m.castShadow = true; head.add(m);
   }
 
-  // ---------- hands: palm + 4 two-segment fingers + thumb; curl 0..1 ----------
+  // ---------- hands: palm + 4 three-joint fingers + a two-joint thumb (v1.8) ----------
+  // Hand frame (wrist bone): fingers point along -y, the thumb/index side is +z, the palm faces -x on the left hand and +x
+  // on the right (towards the body at rest). Each finger segment keeps its line (start, end, radius) for the grasp
+  // solver and the grip probe.
   const fingers = { l: [], r: [] };
+  const FR = [0.0098, 0.009, 0.0082];                                   // finger radii: base, middle, tip
   for (const [s, sx] of [['l', 1], ['r', -1]]) {
     const h = new THREE.Group(); h.position.y = -0.005; B[s + 'Wr'].add(h);
-    // palm (a rounded slab), palm faces -x on the left hand (towards the body at rest)
-    const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 20), M.skin); palm.scale.set(0.42, 1.05, 0.9); palm.position.set(0, -0.045, 0); palm.castShadow = true; h.add(palm);
-    const fl = [0.042, 0.047, 0.045, 0.037], fz = [0.03, 0.01, -0.01, -0.028];
+    // palm (a rounded slab)
+    // palm: flatter and a little wider than before (it read as an egg)
+    const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 32, 20), M.skin); palm.scale.set(0.36, 1.0, 0.95); palm.position.set(0, -0.045, 0); palm.castShadow = true; h.add(palm);
+    const fl = [0.05, 0.056, 0.053, 0.043], fz = [0.03, 0.01, -0.01, -0.028];
+    const seg = (len, r) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 12), M.skin); m.position.y = -len / 2; m.castShadow = true; return m; };
     for (let k = 0; k < 4; k++) {
-      const f1 = new THREE.Group(); f1.position.set(0, -0.09, fz[k] * 0.95); h.add(f1);
-      const seg = (len, r) => { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 12), M.skin); m.position.y = -len / 2; m.castShadow = true; return m; };
-      f1.add(seg(fl[k] * 0.52, 0.0095));
-      const f2 = new THREE.Group(); f2.position.y = -fl[k] * 0.55; f1.add(f2); f2.add(seg(fl[k] * 0.45, 0.0088));
-      fingers[s].push([f1, f2]);
+      const L = [fl[k] * 0.44, fl[k] * 0.3, fl[k] * 0.24];
+      const j1 = new THREE.Group(); j1.position.set(0, -0.088, fz[k] * 0.95); h.add(j1); j1.add(seg(L[0], FR[0]));
+      const j2 = new THREE.Group(); j2.position.y = -L[0] - 0.002; j1.add(j2); j2.add(seg(L[1], FR[1]));
+      const j3 = new THREE.Group(); j3.position.y = -L[1] - 0.002; j2.add(j3); j3.add(seg(L[2], FR[2]));
+      const f = [j1, j2, j3]; f.len = [L[0] + 0.002, L[1] + 0.002, L[2] + FR[2]]; fingers[s].push(f);
     }
-    const th = new THREE.Group(); th.position.set(-sx * 0.012, -0.03, 0.04); th.rotation.set(0.5, 0, sx * 0.5); h.add(th);
-    const t1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.0115, 0.035, 6, 12), M.skin); t1.position.y = -0.02; t1.castShadow = true; th.add(t1);
-    fingers[s].thumb = th;
+    // thumb: a base joint that swings across the palm (opposition) and a tip joint that bends
+    const th = new THREE.Group(); th.position.set(-sx * 0.012, -0.03, 0.04); h.add(th);
+    th.add(seg(0.028, 0.0118));
+    const th2 = new THREE.Group(); th2.position.y = -0.03; th.add(th2); th2.add(seg(0.02, 0.0113)); // nearly as thick as the base, or the joint shows as a ring
+    const t = [th, th2]; t.len = [0.03, 0.02 + 0.0113]; fingers[s].thumb = t;
   }
+  // thumb pose by direction (hand frame): k = 0 rests down and out beside the index finger, a little to the palm side;
+  // k = 1 swings across the palm side towards the fingers (a grip); the tip bends with it. (Set by rotation angles, the
+  // old thumb leaned out through the back of the hand.)
+  const thumbPose = (s, k, tip = null) => { const sx = s === 'l' ? 1 : -1, [t1, t2] = fingers[s].thumb, ps = -sx;
+    const d = V3(ps * 0.35, -0.78, 0.45).lerp(V3(ps * 0.85, -0.5, -0.25), k).normalize();
+    t1.quaternion.setFromUnitVectors(V3(0, -1, 0), d);
+    t2.rotation.set(0, 0, 0); const bend = tip ?? (0.15 + 0.5 * k);
+    // bend the tip towards the palm side: about the axis across the thumb (thumb direction x palm normal)
+    const ax = V3(0, -1, 0).cross(V3(ps, 0, 0).applyQuaternion(t1.quaternion.clone().invert())).normalize();
+    t2.quaternion.setFromAxisAngle(ax, -bend); };
+  // finger segments in world space: [[start, end, radius], ...] per finger (thumb last)
+  const fingerLines = (s) => { const out = []; const W = (o, y) => o.localToWorld(V3(0, y, 0));
+    for (const f of [...fingers[s], fingers[s].thumb]) out.push(f.map((j, i) => [W(j, 0), W(j, -f.len[i]), i < 3 ? FR[Math.min(i, 2)] : FR[2]]));
+    return out; };
+  // closest distance between segments p1-q1 and p2-q2
+  const segDist = (p1, q1, p2, q2) => {
+    const d1 = q1.clone().sub(p1), d2 = q2.clone().sub(p2), r = p1.clone().sub(p2), a = d1.dot(d1), e = d2.dot(d2), f = d2.dot(r);
+    let s_ = 0, t_ = 0; const c = d1.dot(r), b = d1.dot(d2), den = a * e - b * b;
+    s_ = den > 1e-12 ? Math.min(1, Math.max(0, (b * f - c * e) / den)) : 0; t_ = (b * s_ + f) / e;
+    if (t_ < 0) { t_ = 0; s_ = Math.min(1, Math.max(0, -c / a)); } else if (t_ > 1) { t_ = 1; s_ = Math.min(1, Math.max(0, (b - c) / a)); }
+    return p1.clone().addScaledVector(d1, s_).distanceTo(p2.clone().addScaledVector(d2, t_));
+  };
   // ---------- feet: foot + toes on a sandal ----------
   for (const s of ['l', 'r']) {
     const f = new THREE.Group(); B[s + 'An'].add(f);
@@ -475,8 +505,10 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     armFK(s, sh, el, wr = [0, 0, 0]) { B[s + 'Sh'].rotation.set(...sh); B[s + 'El'].rotation.set(-el, 0, 0); B[s + 'Wr'].rotation.set(...wr); root.updateMatrixWorld(true); },
     // two-bone IK: put the palm centre at target (world). pole = where the elbow should point (world).
     // hint = world direction the back of the hand / palm normal should roughly face.
-    armIK(s, target, pole, hint = V3(0, 0, 1)) {
-      const a = 0.28, b = 0.255 + 0.07;
+    armIK(s, target, pole, hint = V3(0, 0, 1)) { this._arm2(s, target, pole, hint, 0.255 + 0.07); B[s + 'Wr'].quaternion.identity(); root.updateMatrixWorld(true); },
+    // shoulder-elbow-(wrist or palm) two-bone solve: b = forearm length to the point being placed
+    _arm2(s, target, pole, hint, b) {
+      const a = 0.28;
       root.updateMatrixWorld(true);
       const S = B[s + 'Sh'].getWorldPosition(V3(0, 0, 0));
       const D = target.clone().sub(S); const d = Math.min(D.length(), a + b - 1e-3); const dir = D.normalize();
@@ -485,7 +517,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
       const E = S.clone().addScaledVector(dir, a * cosA).addScaledVector(p, a * sinA);
       aimNegY(B[s + 'Sh'], E.clone().sub(S), hint);
       aimNegY(B[s + 'El'], S.clone().addScaledVector(dir, d).sub(E), hint);
-      B[s + 'Wr'].quaternion.identity(); root.updateMatrixWorld(true);
+      root.updateMatrixWorld(true); return E;
     },
     // two-bone IK: ankle to target (world), knee towards pole; foot kept level, pointing along yaw (radians, world)
     legIK(s, target, pole, footYaw = null) {
@@ -507,10 +539,70 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     // curl the fingers (0 open .. 1 fist)
     grip(l = 0, r = l) {
       for (const [s, k, sx] of [['l', l, 1], ['r', r, -1]]) {
-        fingers[s].forEach(([f1, f2], i) => { f1.rotation.set(0, 0, -sx * (0.25 + 1.2 * k) * (1 - i * 0.04)); f2.rotation.set(0, 0, -sx * (0.2 + 1.4 * k)); });
-        fingers[s].thumb.rotation.set(0.5 + 0.5 * k, 0, sx * (0.5 - 0.6 * k));
+        // relaxed: the curl grows from the index to the little finger, and open fingers fan out a little
+        fingers[s].forEach(([f1, f2, f3], i) => { const c = 0.08 * i * (1 - k);
+          f1.rotation.set((1.5 - i) * 0.06 * (1 - k), 0, -sx * (0.2 + c + 1.15 * k) * (1 - i * 0.04));
+          f2.rotation.set(0, 0, -sx * (0.28 + 1.5 * c + 1.35 * k)); f3.rotation.set(0, 0, -sx * (0.18 + c + 0.95 * k)); });
+        thumbPose(s, k);
       }
     },
+    // close hand s around a cylinder { a, b, r } (world points and radius): each joint bends until its segment, or the
+    // rest of the finger, touches the surface, so fingers wrap ropes, handles and tools of any thickness. Fingers that
+    // reach nothing stay fully bent (a fist past a thin rope). press: how far the skin sinks in (m). Returns the
+    // number of fingers (of 5, thumb included) touching.
+    grasp(s, cyl, { press = 0.0008, thumb = true } = {}) {
+      const sx = s === 'l' ? 1 : -1, A = cyl.a, Bq = cyl.b, R = cyl.r;
+      root.updateMatrixWorld(true);
+      const gapFrom = (f, j) => { f[j].updateMatrixWorld(true); let m = 1e9;
+        for (let i = j; i < f.length; i++) { const st = f[i].localToWorld(V3(0, 0, 0)), en = f[i].localToWorld(V3(0, -f.len[i], 0));
+          m = Math.min(m, segDist(st, en, A, Bq) - R - (f === fingers[s].thumb ? 0.011 : FR[i])); }
+        return m; };
+      // march a joint from lo to hi in small steps; stop at the first touch and refine it
+      const close = (f, j, set, lo, hi) => {
+        const n = 16, touch = () => gapFrom(f, j) <= -press; let prev = lo;
+        set(lo); if (touch()) return lo;
+        for (let k = 1; k <= n; k++) { const v = lo + (hi - lo) * k / n; set(v); if (touch()) { let a0 = prev, a1 = v;
+          for (let it = 0; it < 8; it++) { const m = (a0 + a1) / 2; set(m); if (touch()) a1 = m; else a0 = m; } set(a1); return a1; } prev = v; }
+        return hi; };
+      let n = 0;
+      fingers[s].forEach((f) => {
+        f.forEach(j => j.rotation.set(0, 0, -sx * 0.1));
+        const MAX = [1.55, 1.75, 1.3]; let hit = false;
+        for (let j = 0; j < 3; j++) { const v = close(f, j, (x) => f[j].rotation.set(0, 0, -sx * x), 0.1, MAX[j]); if (v < MAX[j]) hit = true; }
+        if (hit || gapFrom(f, 0) < 0.004) n++;
+      });
+      if (thumb) { const T = fingers[s].thumb; let kk = 0;
+        const k = close(T, 0, (x) => { kk = x; thumbPose(s, x, 0.1); }, -0.7, 1.3); // from wide open: its rest pose can already be inside a thick handle
+        const v = close(T, 1, (x) => thumbPose(s, kk, x), 0.1, 1.2);
+        if (k < 1.3 || v < 1.2) n++; }
+      root.updateMatrixWorld(true); return n;
+    },
+    // hold a cylinder { a, b, r } in hand s at u (0..1 from a to b): the hand turns to lie across the axis with the
+    // forearm's side of the hand towards `up` (default: the elbow), the thumb towards `thumbTo` along the axis (default:
+    // world up, or towards b), the arm reaches with the elbow towards `pole`, then the fingers wrap it (grasp).
+    // Returns the grasp's finger count; F.wristBend(s) says how far the wrist had to bend (radians).
+    hold(s, cyl, { u = 0.5, up = null, thumbTo = null, pole = null, press } = {}) {
+      const sx = s === 'l' ? 1 : -1; root.updateMatrixWorld(true);
+      const Ax = cyl.b.clone().sub(cyl.a).normalize(), P = cyl.a.clone().lerp(cyl.b, u);
+      const S = B[s + 'Sh'].getWorldPosition(V3(0, 0, 0)), side = root.localToWorld(V3(sx, 0, 0)).sub(root.position).normalize();
+      const pl = pole || S.clone().addScaledVector(side, 0.45).add(V3(0, -0.25, 0)).addScaledVector(root.localToWorld(V3(0, 0, -1)).sub(root.position), 0.4);
+      const tt = thumbTo || (Math.abs(Ax.y) > 0.3 ? V3(0, 1, 0) : Ax.clone());
+      let upv = up ? up.clone() : S.clone().sub(P), wrist = null, Rm = new THREE.Matrix4();
+      for (let pass = 0; pass < 2; pass++) {
+        const Y = upv.clone().addScaledVector(Ax, -upv.dot(Ax)); if (Y.lengthSq() < 1e-8) Y.set(0, 1, 0); Y.normalize();
+        const Z = Ax.clone().multiplyScalar(Ax.dot(tt) < 0 ? -1 : 1), X = Y.clone().cross(Z).normalize();
+        Rm.makeBasis(X, Y, Z);
+        // the axis runs across the base of the fingers, r beyond the skin of the palm (palm side = -sx x)
+        wrist = P.clone().sub(V3(-sx * (0.015 + cyl.r), -0.085, -0.002).applyMatrix4(Rm));
+        const E = this._arm2(s, wrist, pl, Z, 0.255); F.reachShort = F.reachShort || {}; F.reachShort[s] = Math.max(0, wrist.distanceTo(S) - 0.534); // > 0: the arm can't reach
+        if (!up) upv = E.clone().sub(wrist);                    // second pass: the hand follows the forearm
+      }
+      const q = new THREE.Quaternion().setFromRotationMatrix(Rm); B[s + 'El'].getWorldQuaternion(_q2);
+      B[s + 'Wr'].quaternion.copy(_q2.invert().multiply(q)); root.updateMatrixWorld(true);
+      return this.grasp(s, cyl, { press });
+    },
+    wristBend(s) { const q = B[s + 'Wr'].quaternion; return 2 * Math.acos(Math.min(1, Math.abs(q.w))); },
+    fingerLines(s) { return fingerLines(s); },
     // face: brow -1 (frown/strain) .. 1 (raised), smile -1..1, open 0..1, blink 0..1, squint 0..1
     // wide: eyes open wider (surprise, relief); oh: round open mouth (a 'phew'); flare: nostrils (effort); cheek: cheeks lift (real smile)
     // speech: a mouth shape from lipsync.js (lipTrack), laid over the expression: the jaw opens, lips round or spread,

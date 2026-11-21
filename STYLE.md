@@ -167,6 +167,24 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   tucked, open vowels open past 6 mm, rounded sounds narrower than rest, shut in silence, no open-to-shut flips.
 - **Test scene** `shots_lp.js` (6.8 s): a Roman worker says one line to camera; chest-up, then close on the face.
 
+### Hands (v1.8.0, Nov 2026)
+
+- **Fingers** have three joints and the thumb two; the palm is flatter. `F.grip(l, r)` still curls 0..1, now with a
+  relaxed cascade (the index least curled, the little finger most, open fingers fanned a little). The thumb is posed by
+  direction (`thumbPose`): resting beside the index finger, swinging across the palm side to grip.
+- **`F.hold(s, { a, b, r }, { u, up, thumbTo, pole })`** holds a rope, handle or tool (any cylinder, world points): the
+  hand turns to lie across it with the forearm's side towards the elbow, the arm reaches the wrist, then
+  **`F.grasp(s, cyl)`** closes each joint until its segment touches the surface, so fingers wrap thin ropes and thick
+  poles alike. `F.wristBend(s)`, `F.reachShort[s]` and `F.fingerLines(s)` are there for probes.
+- Lay a held tool across the fist, at about a right angle to the forearm (a hammer grip). Lined up with the forearm,
+  like a sword, the wrist has to bend past 90 degrees. Swing a tool about the elbow, with the forearm and tool moving
+  together, not about the hand.
+- **Probe** `scripts/probe_grasp.mjs <engine> <duration>` (scenes set `window._HOLDS` under `?dbg`): at least 3 of 5
+  fingers touching, none more than 3 mm in, the palm on the tool, the wrist under 75 degrees, the arm long enough.
+- **Hand bench** `shots_hb.js` (8 stills: relaxed from two sides, half-curled, fist, rope, handle, pole from two
+  sides): render it after any hand change and compare.
+- **Test scene** `shots_hd.js` (5.3 s): an Egyptian mason dresses a block with a copper chisel and a club mallet.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -228,6 +246,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Sparkles: isolated white pixels from shading blow-ups (they hold still, so the pop scan misses them) | stills with `QS='mb=1&nodof'`, then `python3 -I scripts/sparkle_scan.py <dir>` | PASS (eye catchlights allowed) |
 | Code after a `//` comment on the same line (silently disabled) | `python3 -I scripts/swallow_scan.py` | PASS |
 | Sets: props and plants on the ground, soles and palms of every character | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` or `_FS` under `?dbg`; airborne effects set `userData.noGround`) | PASS |
+| Hands on ropes, handles and tools: contact, no fingers inside, wrist, reach | `probe_grasp.mjs <engine> <duration>`, hand bench `shots_hb.js` after hand changes | PASS |
 | Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -287,6 +306,15 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   on two frames.
 - Hanging hands: with a sideways `armIK` hint the palms turned to the camera; a forward hint puts them against the
   thighs.
+- The `armIK` hint is the direction the thumb side of the hand faces (the hand's +z). Forward for hanging hands.
+- A close-up bench finds what a full-body view hides: since v1.0 the thumb leaned out through the back of the hand (a
+  bump on the back of the palm). Pose by direction, not by stacked rotation angles, when the sign of each angle is
+  unclear.
+- A grasp that starts from the rest pose can already be inside a thick handle and count as "touching" at once: open
+  the joint wide first, then close it.
+- Twice more while building the hands, a `//` comment swallowed code: once the loop that builds the mouth's opening,
+  once the line that adds the palm to the hand. `swallow_scan.py` caught both before any render; run it after every
+  edit.
 - A rotated object's `Box3().setFromObject(o)` is loose (it boxes the geometry's box), so `settle()` must use the precise
   form, `setFromObject(o, true)`, or props float by several cm.
 - Place plants and props on the ground mesh you actually render (raycast it), not on the height function it was built
