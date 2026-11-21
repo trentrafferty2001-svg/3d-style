@@ -3,6 +3,15 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.7.0 (21 Nov 2026) = commit PENDING
+Lip-sync to the voice (backlog item 1). The channels stay on v1.0.0 until the owner moves them.
+
+- `lipsync.js` (new): `lipTrack`/`lipTracks` turn a line's sound timings into mouth shapes (closures on m/b/p held two
+  frames, f/v, rounded, spread and open vowels, blended with the neighbours, the jaw a beat behind, 40 ms lead).
+- `toon.js`: `face({ speech })` lays the shape over the expression; the mouth's dark fill now sits just behind the lips.
+- `kokoro_say.py` writes every sound's time (`phones`); `plan_vo.py` carries them into `vo_X.js` (`phones`, `audioAt`).
+- QA: `probe_lips.mjs`. Test scene `shots_lp.js` with `vo_lp.js`.
+
 ## v1.6.0 (21 Nov 2026) = commit 27e99269b5a60d3470e3bad46643e943bd019d5f
 Farm set: rice-fish paddies (backlog item 2, fifth and last set; item 2 is complete). The channels stay on v1.0.0 until
 the owner moves them.
