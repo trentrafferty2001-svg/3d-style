@@ -3,6 +3,15 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.8.0 (21 Nov 2026) = commit PENDING
+Hands (backlog item 3). The channels stay on v1.0.0 until the owner moves them.
+
+- `toon.js`: three-joint fingers and a two-joint thumb, a flatter palm; `grip()` with a relaxed cascade; the thumb is posed
+  by direction (it used to lean out through the back of the hand); `hold(s, cyl, opts)` turns the hand across a rope,
+  handle or tool and reaches it, `grasp(s, cyl)` closes every joint until it touches; `wristBend`, `reachShort`,
+  `fingerLines` for probes; `armIK` now shares a two-bone solver (`_arm2`) with `hold`.
+- QA: `probe_grasp.mjs`, hand bench `shots_hb.js`, `pop_scan.py --impacts` for intended hard contacts. Test scene `shots_hd.js`.
+
 ## v1.7.0 (21 Nov 2026) = commit c97ecb8a3c9b94ca3be757324ef925efb295e306
 Lip-sync to the voice (backlog item 1). The channels stay on v1.0.0 until the owner moves them.
 
