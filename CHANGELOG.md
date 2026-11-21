@@ -3,6 +3,15 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.1.0 (21 Nov 2026) = commit 9d7718b562eceac2e1c096d2d82b69a2a3c167d8
+New look features (backlog items 6 + 7). The channels stay on v1.0.0 until the owner moves them.
+
+- Skin (`toon.js` `skinShading`, settings in `SKIN`): wrap lighting with a warm subsurface term, warm sky light and
+  reflections on skin, a soft view rim, slight roughness variation, albedo desaturated in linear light (`sat: 0.56`).
+  Sheen 0.5 to 0.2. Inner ears share the shading and follow the skin tone.
+- Surfaces: roughness maps on wood and clay (`nile.js` `roughTex`) and the kilt's linen, average roughness unchanged.
+- Film grain once per output frame (`main.js`, `STYLE.grain`, default 0.022, `?grain=0` turns it off).
+
 ## v1.0.1 (20 Nov 2026) = commit d8f962507d15953200ef6eea03366f8a18e8033b
 Fixes. The channels stay on v1.0.0 until the owner moves them.
 
