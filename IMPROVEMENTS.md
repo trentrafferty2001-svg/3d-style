@@ -21,8 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (21 Nov 2026)
 
-v1.8.0 is released (item 3: hands), waiting for the owner's verdict; v1.7.0 (item 1: lip-sync) before it. The owner asked
-for items 1, 3 and 4 in that order (21 Nov): rope and cloth (item 4) is next.
+v1.9.0 is released (item 4: rope and cloth), waiting for the owner's verdict; v1.8.0 (item 3: hands) and v1.7.0 (item 1:
+lip-sync) before it. These were the three the owner asked for on 21 Nov; ask the owner for the next item.
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
@@ -68,7 +68,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
    edges, wind, grounding, cache keys). *Proof:* one test shot per set, plus `probe_qa.mjs` grounding.
 3. *(Done in v1.8.0: `F.hold`/`F.grasp`, `probe_grasp.mjs`, the hand bench.)* **Hands.** Finger curl that wraps around ropes, handles and tools, contact checked by a probe, and relaxed
    hands that aren't stiff. *Proof:* hand probe under 6 cm while gripping, plus close-up stills.
-4. **Rope and cloth as real simulation.** A verlet chain for ropes (sag, swing, slack when let go) and a baked
+4. *(Done in v1.9.0: `sim.js` bakeRope/bakeHem, `probe_simrope.mjs`.)* **Rope and cloth as real simulation.** A verlet chain for ropes (sag, swing, slack when let go) and a baked
    cloth table for the kilt hem, both simulated once at build time so frames stay pure functions of time.
    *Proof:* probes for rope through hands or bucket, pop scan.
 5. **Water interaction.** Impact ripple rings, splash particles and spray, caustics on the shallows, and wet
@@ -148,3 +148,8 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   held like a sword (wrist bent 170 degrees), the thumb poking out of the back of the hand (there since v1.0), a thumb
   starting inside a thick handle, blows timed between frames (the mallet never seen touching the chisel), and two more
   comments that swallowed code (caught by `swallow_scan.py`). Kaggle queued for 90 minutes; the GitHub farm rendered it.
+- **21 Nov 2026 (cont.):** Item 4, rope and cloth (v1.9.0): `sim.js` (a baked verlet rope with pins, body capsules and
+  ground friction; the kilt hem as a pendulum driven by the hips), `probe_simrope.mjs`, a hauler who lets go of a sledge
+  rope. QA caught a wide shot that missed the hauler, the rope's tail starting in a knot, the slack rope lying through
+  his sandals (feet now collide), arms 14 cm short of the grips while leaning back, the rope between the fists
+  stretched 47% (length rounded down), and a rope that fell like a feather (damping per step too strong).
