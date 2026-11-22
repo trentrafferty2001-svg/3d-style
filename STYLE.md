@@ -255,6 +255,9 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - Frames leave the browser as JPEG at quality 98 on Kaggle (`render_kaggle.py`; a job can ask for PNG with
   `"jpeg": 0`), and the QA preview uses JPEG too. A full-HD PNG screenshot took 2.4 s on the CPU container against 79 ms
   for JPEG 98, which is visually lossless (50.7 dB PSNR) before x264 compresses the frame anyway. Stills for QA stay PNG.
+  Measured on Kaggle's T4 with the shaduf demo: 0.77 s a frame before v1.11, 0.71 with adaptive motion blur, 0.45 with
+  JPEG capture as well (1.7x faster in all), at 43.5 dB PSNR against the PNG render. A 45 s video now takes about
+  10 minutes of GPU time instead of 17.
 - `babble(seed, t0, t1)` in lipsync.js makes up speech (syllables, words, pauses, some m/b/p closures) for extras who
   talk without a voice track; `chat()` feeds it through `lipTrack`, so their mouths make real shapes on their turns.
 

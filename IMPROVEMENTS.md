@@ -82,7 +82,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
    variation on clay, wood and linen.
 8. *(Done in v1.11.0: `crowd.js`, scale-aware IK, `probe_crowd.mjs`.)* **Crowds and extras.** Reuse `toon.js` with different builds, skin tones, clothes and faces for background people,
    driven by simple loops. *Proof:* bucket and body probes extended to all characters.
-9. *(Partly done in v1.11.0: adaptive motion blur, 8% on the busy demo, more on calm shots. Static shadow-map caching not
+9. *(Done in v1.11.0 + v1.13.0: adaptive motion blur and JPEG frame capture, 1.7x faster on Kaggle. Static shadow-map caching not
    done: every scene has moving characters casting shadows, so the map has to be redrawn each sub-frame.)* **Speed.** Adaptive motion blur (fewer samples on slow shots, more on fast ones), and caching static shadow maps,
    so more videos fit in the 6 Kaggle hours.
 10. *(Done in v1.9.0: `scripts/qa.py`.)* **One-command QA.** A single script that runs every probe, the pop scan and the stills sheet and prints
@@ -177,4 +177,5 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   side vector in `walk()`): fixed, a crossed-legs check added to `probe_crowd.mjs`, and the crowd clip rendered again.
 - **22 Nov 2026 (overnight, cont.):** Item 9 again (v1.13.0): the speed test showed most of a GPU frame's time is not the
   3D render, and a full-HD PNG screenshot turned out to take 2.4 s on the CPU container against 79 ms for JPEG 98 (50.7 dB
-  PSNR, visually lossless). Kaggle now captures JPEG 98. Chatting extras lip-sync made-up speech (`babble`).
+  PSNR, visually lossless). Kaggle now captures JPEG 98: the demo renders at 0.45 s a frame (0.77 before v1.11), 1.7x
+  faster, so the weekly 6 Kaggle hours now cover far more video. Chatting extras lip-sync made-up speech (`babble`).
