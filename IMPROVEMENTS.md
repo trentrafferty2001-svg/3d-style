@@ -22,8 +22,8 @@ session log at the bottom, then commit.
 ## Status (21 Nov 2026)
 
 Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
-(item 5: caustics) and v1.11.0 (item 8: crowds) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
-before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. Next: item 9 (speed).
+(item 5: caustics) and v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
+before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. All ten backlog items now have work behind them; ask the owner which to deepen next.
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
@@ -81,9 +81,10 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
    variation on clay, wood and linen.
 8. *(Done in v1.11.0: `crowd.js`, scale-aware IK, `probe_crowd.mjs`.)* **Crowds and extras.** Reuse `toon.js` with different builds, skin tones, clothes and faces for background people,
    driven by simple loops. *Proof:* bucket and body probes extended to all characters.
-9. **Speed.** Adaptive motion blur (fewer samples on slow shots, more on fast ones), and caching static shadow maps,
+9. *(Partly done in v1.11.0: adaptive motion blur, 8% on the busy demo, more on calm shots. Static shadow-map caching not
+   done: every scene has moving characters casting shadows, so the map has to be redrawn each sub-frame.)* **Speed.** Adaptive motion blur (fewer samples on slow shots, more on fast ones), and caching static shadow maps,
    so more videos fit in the 6 Kaggle hours.
-10. **One-command QA.** A single script that runs every probe, the pop scan and the stills sheet and prints
+10. *(Done in v1.9.0: `scripts/qa.py`.)* **One-command QA.** A single script that runs every probe, the pop scan and the stills sheet and prints
     PASS/FAIL, so no check is skipped.
 
 ## How to work on an item
@@ -165,3 +166,6 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   walking and chatting loops), scale-aware IK in toon.js, `probe_crowd.mjs`, a crowd murmur in `make_ambience.py`, a
   Roman street with five extras. QA caught a wide shot too narrow for both pavements, a close shot looking into empty
   desert, a walker passing in front of the camera, and feet skating 5 mm a frame (a stride longer than the legs reach).
+  Item 9 in the same release: adaptive motion blur (sub-frames from on-screen motion), measured on Kaggle (8% faster on
+  the busy demo at 44 dB PSNR; calm scenes use about half the sub-frames). `probe_rome.mjs` now checks the lower foot of
+  a walker (the other one swings).

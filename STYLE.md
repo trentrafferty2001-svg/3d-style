@@ -231,6 +231,17 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - Sound: `make_ambience.py --murmur G` (a distant crowd talking, no words).
 - **Test scene** `shots_cr.js` (6 s): a Roman street with three walkers and two neighbours talking.
 
+### Speed: adaptive motion blur (v1.11.0, Nov 2026)
+
+- `main.js` picks the number of motion-blur sub-frames per frame from how far things move on screen during the
+  shutter: it poses the shot at the shutter's start and end (no render), projects every bone and mesh centre that is on
+  screen, and uses one sub-frame per 1.6 px of the largest move (at 1080x1920), at least 3 and at most `STYLE.mb`.
+  `?mbfixed` or `STYLE.mbFixed` turns it off; `STYLE.mbMin` and `STYLE.mbPx` tune it.
+- `scripts/probe_mb.mjs <engine> <duration>` reports the sub-frames each frame uses.
+- Measured: the rope scene needs 55% of the sub-frames (calm shots), the busy shaduf demo 83%. On Kaggle's T4 the demo
+  rendered 8% faster (159 s against 173 s), at 44 dB PSNR against the fixed render (no visible change): on the GPU a
+  good part of each frame's time is not the sub-frames (reading pixels back, encoding), so calm scenes gain most.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 

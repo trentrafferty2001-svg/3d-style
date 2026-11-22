@@ -40,10 +40,10 @@ export const SHOTS = [
   { start: 0, end: CUT, build: ({ makeStage }) => {
     const R = rig(makeStage), c = cam(50);
     return { scene: R.scene, camera: c, update(lt) {
-      // down the street from above the road: walkers coming and going on both pavements, the portico on the left
+      // from the road towards the far pavement: walkers passing each other under the portico
       const k = smooth(lt / CUT), hh = handheld(lt, 0.6, 2);
-      const cp = V(11.5 - 0.8 * k + hh.p[0], 2.7 - 0.2 * k + hh.p[1], 0.3 + hh.p[2]); R.act(lt);
-      place(c, cp.toArray(), [-1.5, 0.95, 0.0], hh.roll);
+      const cp = V(5.2 - 0.6 * k + hh.p[0], 1.9 - 0.1 * k + hh.p[1], -0.2 + hh.p[2]); R.act(lt);
+      place(c, cp.toArray(), [-2.5, 0.95, -1.9], hh.roll);
       return { bloom: 0.35, warm: 1.12, sat: 1.1, flare: 0.3, dof: { focus: 7.5, aperture: 0.0015, maxblur: 0.004 } };
     } };
   } },

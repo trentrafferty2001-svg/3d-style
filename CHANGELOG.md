@@ -4,12 +4,16 @@ Versions are pinned by commit (tags can't be pushed from the cloud sessions; the
 GitHub). Use the full commit id in a channel's rules file.
 
 ## v1.11.0 (22 Nov 2026) = commit PENDING
-Crowds and extras (backlog item 8). The channels stay on v1.0.0 until the owner moves them.
+Crowds and extras (backlog item 8) and adaptive motion blur (item 9). The channels stay on v1.0.0 until the owner
+moves them.
 
 - `crowd.js` (new): `extra()` (seeded heights, faces, skin tones, clothes), `walk()` (planted feet, lift then travel,
   arm swing), `chat()` (turn-taking talk with gestures and nods), `line()`.
 - `toon.js`: IK, `hold()` and the grasp follow the character's size (characters at scale 1 are unchanged).
-- QA: `probe_crowd.mjs` (foot skating, overlaps, ground), run by `qa.py`. `make_ambience.py --murmur`.
+- `main.js`: adaptive motion blur (backlog item 9): sub-frames per frame from the on-screen motion (3 to `STYLE.mb`);
+  `?mbfixed` / `STYLE.mbFixed` for the old fixed count. `probe_mb.mjs` reports the budget.
+- QA: `probe_crowd.mjs` (foot skating, overlaps, ground), run by `qa.py`; `probe_rome.mjs` checks a walker's lower foot.
+  `make_ambience.py --murmur`.
   Test scene `shots_cr.js`.
 
 ## v1.10.0 (22 Nov 2026) = commit 30b09f2392124b46f8bec47107f81b38dfd93701

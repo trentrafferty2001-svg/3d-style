@@ -1,7 +1,8 @@
 // Roman set probe (shots_rm.js or any scene that sets window._SITE and window._F under ?dbg):
 //  1. every prop (columns, stepping stones, amphorae, olive trunk): its lowest vertices vs the ground right under them
 //  2. every instanced plant (grass, olive, cypresses, pines): instance origin vs the ground under it
-//  3. the worker's soles vs heightAt over the whole clip
+//  3. every character's soles vs heightAt over the whole clip: no sole in the ground, and the lower foot on it (a walking
+//     foot in the air is fine; probe_crowd.mjs checks that planted feet don't slide)
 //  4. palms vs the tunic's cloth (skirt, shell, sleeves): no palm inside the cloth
 // usage (from the engine folder): node probe_rome.mjs <engine dir>   -> PASS / FAIL per check
 import { chromium } from 'playwright'; import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
@@ -35,15 +36,17 @@ const out = await pg.evaluate(async () => {
   for (let t = 0; t <= window.DURATION; t += 0.1) {
     window.renderAt(t);
     for (const F of FS) { F.root.updateMatrixWorld(true); const cloth = []; F.root.traverse(o => { if (o.isSkinnedMesh && ['kilt', 'tunic', 'sleeve'].includes(o.name)) cloth.push(o); });
+    const footD = [];
     for (const s of ['l', 'r']) {
       // sole: the lowest point of the foot meshes under the ankle bone
       let lo = 9, at = null; F.bones[s + 'An'].traverse(o => { if (!o.isMesh) return; const a = o.geometry.attributes.position; for (let i = 0; i < a.count; i++) { v.fromBufferAttribute(a, i).applyMatrix4(o.matrixWorld); if (v.y < lo) { lo = v.y; at = v.clone(); } } });
-      const d = lo - window._SITE.userData.heightAt(at.x, at.z); soleLo = Math.min(soleLo, d); soleHi = Math.max(soleHi, d);
+      const d = lo - window._SITE.userData.heightAt(at.x, at.z); soleLo = Math.min(soleLo, d); footD.push(d);
       // palm centre vs cloth: nearest cloth vertex, and whether the palm is nearer the body axis than that vertex
       const palm = F.bones[s + 'Wr'].localToWorld(new THREE.Vector3(0, -0.05, 0)); let best = 9;
       for (const o of cloth) { const a = o.geometry.attributes.position; for (let i = 0; i < a.count; i += 2) { o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld); const dd = v.distanceTo(palm); if (dd < best) best = dd; } }
       if (best < palmIn) { palmIn = best; tP = t; }
     }
+    soleHi = Math.max(soleHi, Math.min(...footD));   // the lower foot must be on the ground (a walker's other foot swings)
     }
   }
   log.push(`soles vs ground: ${(soleLo * 100).toFixed(1)} .. ${(soleHi * 100).toFixed(1)} cm (want about -2 .. +2)`); if (soleLo < -0.025 || soleHi > 0.025) ok = false;
