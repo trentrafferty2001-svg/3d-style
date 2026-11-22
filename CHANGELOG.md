@@ -3,6 +3,13 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.10.0 (22 Nov 2026) = commit PENDING
+Caustics (backlog item 5 finished). The channels stay on v1.0.0 until the owner moves them.
+
+- `water.js`: `causticsMaterial(floorMat, opts)`, the sunlit net on the bed of clear shallow water (shadowed by the sun's
+  own shadows, fading with depth). `persia.js`: the jub's floor uses it and its water is see-through.
+- `make_ambience.py`: `--water` (running water with drops) and `--pour`. Test scene `shots_ca.js`.
+
 ## v1.9.0 (22 Nov 2026) = commit 2cafa8b4111433a2393e5ea39ea811bda109d564
 Rope and cloth as real simulation (backlog item 4). The channels stay on v1.0.0 until the owner moves them.
 

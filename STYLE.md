@@ -204,6 +204,19 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - **Test scene** `shots_rp.js` (5.5 s): a hauler leans back on a sledge rope, heaves twice and lets go; the rope drops
   slack on the sand and he stumbles back, his kilt swinging.
 
+### Caustics (v1.10.0, Nov 2026)
+
+- **`causticsMaterial(floorMat, { waterY, flow, scale, speed, strength, depth })`** in water.js returns a patched copy
+  of a floor material: the bright net that sunlight focused by ripples draws on the bed of clear shallow water. Two
+  layers of drifting cells (their edges make the net, brightest where both cross), wobbled so no edge is straight,
+  uneven over the floor. It is scaled by the sun's direct light on that spot, so shadows keep it out, and fades in
+  under the water line and out with depth. The Yazd jub's floor uses it, and the jub's water is now see-through
+  (`opacity: 0.62`).
+- Caustics only show where the water is see-through and the bed is in sun: check the sun's direction against the
+  walls and kerbs before relying on them.
+- Sound: `make_ambience.py --water G` (running water with drops) and `--pour G` (a stream falling into water).
+- **Test scene** `shots_ca.js` (5.5 s): the jub at midday, low along the channel to the spout's stream.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -340,6 +353,8 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
+- First caustics looked like squiggly worms (ridged noise), then like cracked tiles (a crisp cell net). What reads as
+  caustics: thin lines with glowing crossings, curved edges, uneven brightness, always moving.
 - Verlet damping is per step: 0.993 at 480 Hz is thick air (the rope fell 0.9 m in half a second, like a feather).
   Keep it near 1 (0.9992) and compare a fall with free fall.
 - Collide ropes with the feet too, but only lift the rope onto a foot (`up: true`): a capsule push all round coiled the
