@@ -3,6 +3,18 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.14.0 (22 Nov 2026) = commit 078083c8dbfdc55433d5b3a746c5081777a4812b
+Cloth folds (new backlog item A). The channels stay on v1.0.0 until the owner moves them.
+
+- `toon.js`: every tunic and kilt has folds that follow the body (gathers at the belt opening into deeper folds at the hem,
+  a wavy hem, blousing, pull folds from the armpits, the kilt's wrap panel), seeded per character; a shoulder that rounds
+  into the sleeve; sleeves tucked into the shell; a neckline hem; the belt on cloth cinched to the body (it floated up to
+  4 cm off the back). `clothShading`: the legs drape the skirt over a lifted knee and push it out of the way (`clothPush`
+  is the JS twin for probes); linen creases as normal detail (`?nowrinkle` for checks). `F.point(s, k)`.
+- QA: `probe_cloth.mjs` (no skin through cloth, the belt on the cloth; `qa.py` runs it for every clothed character), cloth
+  bench `shots_cl.js`, test scene `shots_cf.js`. `swallow_scan.py` catches destructuring assignments; `probe_rome.mjs`
+  refreshes skeletons before reading skinned cloth.
+
 ## v1.13.1 (22 Nov 2026) = commit c1e972899aa177f8570f389b6ad0faae9aadf57b
 QA fix: `qa.py` now covers the shaduf demo (its rope, bucket, feet, hands and clearance probes) and reads durations and
 cut times that are formulas from the page (`main.js` sets `window.CUTS`). No change to how anything looks.

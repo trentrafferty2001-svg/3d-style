@@ -19,7 +19,12 @@ session log at the bottom, then commit.
 - Release: work on a branch, PR into `main`, merge (the owner allows it), then add the version to `CHANGELOG.md`
   with its full commit id (v1.0.1 fixes, v1.1.0 features). Tags can't be pushed from cloud sessions.
 
-## Status (21 Nov 2026)
+## Status (22 Nov 2026)
+
+New backlog (A-F below), session 3: A (cloth folds) is released as v1.14.0 and its clip sent; B (hair and beards) is in
+progress, then C (hands up close), D, E, F. The channels stay on v1.0.0 until the owner starts January content.
+
+### Earlier status (21 Nov 2026)
 
 Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
 (item 5: caustics), v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) v1.12.0 (god rays, the
