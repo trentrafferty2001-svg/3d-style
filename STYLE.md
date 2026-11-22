@@ -309,7 +309,8 @@ and run them from there (e.g. `cp scripts/probe_hands.mjs /home/claude/style2/ &
 
 **One command:** `python3 -I scripts/qa.py <shots_X.js> <out dir> [--impacts s,s]` (from the repo root) copies the
 engine, points it at the shot file and runs every check below that applies (the probes are chosen from what the shot
-sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`), then prints PASS/FAIL per check. `--quick` runs the probes
+sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`, crowd.js, and the shaduf demo's own probes), then prints
+PASS/FAIL per check. Durations and cut times written as formulas are read from the page (`window.DURATION`, `window.CUTS`). `--quick` runs the probes
 and scans without the stills and preview. It still leaves two jobs to you: read every still, and run earshot on the
 final MP4.
 

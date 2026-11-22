@@ -3,6 +3,10 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.13.1 (22 Nov 2026) = commit PENDING
+QA fix: `qa.py` now covers the shaduf demo (its rope, bucket, feet, hands and clearance probes) and reads durations and
+cut times that are formulas from the page (`main.js` sets `window.CUTS`). No change to how anything looks.
+
 ## v1.13.0 (22 Nov 2026) = commit f91d7f34e78a5a2e9eddebd5d1c4ba3a24795153
 Faster renders and talking extras. The channels stay on v1.0.0 until the owner moves them.
 

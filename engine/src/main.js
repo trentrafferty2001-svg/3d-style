@@ -252,7 +252,7 @@ function getShot(i) {
 const capHTML = (s) => s.replace(/\*(.+?)\*/g, '<span class="hl">$1</span>');
 let lastCap = null;
 
-window.DURATION = DURATION;
+window.DURATION = DURATION; window.CUTS = SHOTS.slice(1).map(s => s.start); // for qa.py (cut times can be formulas)
 // ---------- motion blur + antialiasing by sub-frame accumulation ----------
 // mb = number of sub-frames per output frame (1 = off, the old look). Each sub-frame is rendered at a slightly
 // different time inside the shutter (180 degrees = half a frame) and with a sub-pixel camera jitter, then averaged

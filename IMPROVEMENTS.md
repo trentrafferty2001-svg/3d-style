@@ -179,3 +179,5 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   3D render, and a full-HD PNG screenshot turned out to take 2.4 s on the CPU container against 79 ms for JPEG 98 (50.7 dB
   PSNR, visually lossless). Kaggle now captures JPEG 98: the demo renders at 0.45 s a frame (0.77 before v1.11), 1.7x
   faster, so the weekly 6 Kaggle hours now cover far more video. Chatting extras lip-sync made-up speech (`babble`).
+- **22 Nov 2026 (overnight, cont.):** v1.13.1: `qa.py` runs the shaduf demo's probes and reads formula durations and cuts
+  from the page, so every test scene (including the demo) is covered by the one command.
