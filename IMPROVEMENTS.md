@@ -88,6 +88,32 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 10. *(Done in v1.9.0: `scripts/qa.py`.)* **One-command QA.** A single script that runs every probe, the pop scan and the stills sheet and prints
     PASS/FAIL, so no check is skipped.
 
+## Next backlog (agreed with the owner, 22 Nov 2026)
+
+The owner picked the order: items A-C first, then D-E, then F. Same rules as above (test scenes only, full QA via
+`scripts/qa.py`, a short clip per item, docs, merge). The owner will use the newest version from January; when they say
+they are starting January content, move the channel pins (see "Channels stay pinned") to the latest release.
+
+A. **Cloth folds.** Tunics and kilts are smooth shells (boxy shoulders in close-ups, only the hem swings). Folds and
+   wrinkles that follow the body (bump/normal detail plus a few modelled folds at the belt, elbows and knees).
+   *Proof:* close-up stills front and side, kilt probe, palm-vs-cloth probe.
+B. **Hair and beards.** Hair is a smooth cap. A few hairstyles (short curls, braids, shaved with a fringe, a headcloth)
+   and beards, seeded per character so crowds vary. *Proof:* face bench (`shots_ft.js`) stills, no hair through hats.
+C. **Hands up close.** The palm is still an egg (mittens). Knuckles, a flatter, squarer palm, nails, finger pads.
+   *Proof:* hand bench (`shots_hb.js`) before/after, `probe_grasp.mjs`.
+D. **More ways to move.** Walking only in straight lines: turns, starts and stops, sitting, kneeling, running, steps.
+   *Proof:* `probe_crowd.mjs` (skating, crossed legs) on each move.
+E. **Carrying and handling.** Jar on the head, basket on the shoulder, picking up, putting down, handing over.
+   *Proof:* `probe_grasp.mjs`, no prop floating or through bodies.
+F. **Automatic framing checks.** Most test scenes needed manual camera fixes (cropped heads, faces hidden). A probe that
+   flags a cropped head, a face turned away or a subject out of frame, run by `qa.py`.
+Later: indoor scenes and firelight, animals, rivers and seas, weather (dust, smoke, rain), a faster crowd ground lookup
+(crowd scenes render at 4 s a frame on Kaggle), code-made footsteps on sand, stone and water, a tongue and lower teeth.
+
+Render farm: since 22 Nov the GitHub farm (the-ai-frontier-media, render-farm branch) also captures JPEG 98 frames; the
+first test run of it (job `style3d-farmjpeg-hands`, same scene as run 127 which took 22 min with PNG) was in progress
+when this was written: check its time and that the video matches before relying on it.
+
 ## How to work on an item
 
 1. Set up as in `STYLE.md` → Setup (three.js r169, engine copy, Playwright).
