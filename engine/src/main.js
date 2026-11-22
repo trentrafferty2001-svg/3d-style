@@ -313,6 +313,36 @@ function drawScene(t, idx, jit) {
   return shot;
 }
 
+// adaptive motion blur (v1.12, backlog item 9): how many sub-frames a frame needs depends on how far things move on
+// screen during the shutter. Pose the shot at the shutter's start and end (cheap: no render), project a sample of
+// points (every bone, and the centre of every mesh) and take the largest move in pixels: one sub-frame per MB_PX pixels,
+// at least MB_MIN (edges still need a few jittered sub-frames) and at most MB. Still shots render 2-3x faster; fast
+// ones keep the full count. ?mbfixed (or STYLE.mbFixed) turns it off.
+const MB_MIN = Number(QS0.get('mbmin') || STYLE.mbMin || 3), MB_PX = Number(QS0.get('mbpx') || STYLE.mbPx || 1.6);
+const MB_ADAPT = !(QS0.has('mbfixed') || STYLE.mbFixed);
+const _mbPts = new Map(), _mbV = new THREE.Vector3();
+function mbSamples(shot) {
+  if (_mbPts.has(shot)) return _mbPts.get(shot);
+  const sky = shot.scene.userData.sky, objs = []; shot.scene.traverse(o => { if (o.isBone || (o.isMesh && o !== sky && o.visible)) objs.push(o); }); // the sky rides with the camera
+  const step = Math.max(1, Math.floor(objs.length / 600)), list = objs.filter((_, i) => i % step === 0);
+  _mbPts.set(shot, list); return list;
+}
+function mbProject(shot, t, def) {
+  const lt = t - def.start; TIME.value = t; shot.update(lt, t); for (const u of shot.scene.userData.updaters || []) u(t, lt);
+  const cam = shot.camera; cam.aspect = W / H; cam.updateProjectionMatrix(); shot.scene.updateMatrixWorld(true); cam.updateMatrixWorld(true);
+  return mbSamples(shot).map(o => { o.getWorldPosition(_mbV).project(cam); return [_mbV.x, _mbV.y, _mbV.z]; });
+}
+function mbFor(t, idx, def, span) {
+  if (!MB_ADAPT || MB <= MB_MIN) return MB;
+  const shot = getShot(idx), t0 = Math.max(def.start, t - span / 2), t1 = Math.min(def.end - 1e-4, t + span / 2);
+  const a = mbProject(shot, t0, def), b = mbProject(shot, t1, def);
+  // only points on screen at both ends (off-screen points project to huge, meaningless coordinates); pixels at 1080x1920
+  const on = (p) => Math.abs(p[0]) <= 1.05 && Math.abs(p[1]) <= 1.05 && Math.abs(p[2]) < 1;
+  let px = 0; for (let i = 0; i < a.length; i++) if (on(a[i]) && on(b[i])) px = Math.max(px, Math.hypot((b[i][0] - a[i][0]) * 540, (b[i][1] - a[i][1]) * 960));
+  const n = Math.max(MB_MIN, Math.min(MB, Math.ceil(px / MB_PX)));
+  window._mbLast = { t, px, n }; return n;
+}
+
 window.renderAt = (t) => {
   let idx = SHOTS.findIndex(s => t >= s.start && t < s.end);
   if (idx < 0) idx = SHOTS.length - 1;
@@ -322,13 +352,13 @@ window.renderAt = (t) => {
     composer.renderToScreen = false;
     renderer.getClearColor(_cc); const ca = renderer.getClearAlpha();
     renderer.setRenderTarget(accRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.setClearColor(_cc, ca);
-    const span = SHUTTER / FPS;
-    for (let i = 0; i < MB; i++) {
+    const span = SHUTTER / FPS, n = mbFor(t, idx, def, span);
+    for (let i = 0; i < n; i++) {
       // sub-frame time, kept inside the current shot so a cut never blends two shots
-      const ts = Math.min(def.end - 1e-4, Math.max(def.start, t + ((i + 0.5) / MB - 0.5) * span));
+      const ts = Math.min(def.end - 1e-4, Math.max(def.start, t + ((i + 0.5) / n - 0.5) * span));
       drawScene(ts, idx, [halton(i + 1, 2) - 0.5, halton(i + 1, 3) - 0.5]);
       accQuad.material.uniforms.tDiffuse.value = composer.readBuffer.texture;
-      accQuad.material.uniforms.uW.value = 1 / MB;
+      accQuad.material.uniforms.uW.value = 1 / n;
       // autoClear would wipe the accumulation buffer before every add
       const ac = renderer.autoClear; renderer.autoClear = false;
       renderer.setRenderTarget(accRT); accQuad.render(renderer);

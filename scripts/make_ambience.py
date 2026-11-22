@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Code-made outdoor ambience for test scenes (free, no samples): soft wind, optional cicadas and a few distant birds,
 running water and a pour (v1.10), plus optional one-shot WAVs placed at given times (e.g. an earshot whoosh on a cut).
-usage: make_ambience.py out.wav DURATION [--cicadas] [--birds N] [--water G] [--pour G] [--seed S] [--at time:file.wav[:gain_db]] ...
+usage: make_ambience.py out.wav DURATION [--cicadas] [--birds N] [--water G] [--pour G] [--murmur G] [--seed S] [--at time:file.wav[:gain_db]] ...
 Writes 48 kHz stereo, peak-normalised to -3 dBFS (master to -14 LUFS afterwards, e.g. the Kaggle job does)."""
 import sys, numpy as np
 from scipy.signal import butter, sosfilt
@@ -41,6 +41,16 @@ for key, lo, hi, flut in (('--water', 350, 2600, 9.0), ('--pour', 700, 5200, 23.
             i0 = int(r.uniform(0, dur - 0.1) * SR); L = int(r.uniform(0.02, 0.05) * SR); tt = np.arange(L) / SR; f = r.uniform(900, 2400)
             pl = np.sin(2 * np.pi * f * (1 + 2.5 * tt) * tt) * np.exp(-tt * 70) * 0.05 * gain; pan = r.uniform(0.2, 0.8)
             mix[i0:i0 + L, 0] += pl * (1 - pan); mix[i0:i0 + L, 1] += pl * pan
+# distant crowd murmur (--murmur G): voice-band noise shaped into syllables (3-6 a second) by several overlapping
+# 'talkers', each with its own pitch band and pan, so it reads as people talking far off, with no words
+if '--murmur' in args:
+    gain = float(args[args.index('--murmur') + 1]); r = np.random.default_rng(seed * 13)
+    for k in range(6):
+        f0 = r.uniform(220, 520); band = bp(r.standard_normal(n), f0, f0 * 3.2, 2)
+        syl = np.clip(np.sin(2 * np.pi * r.uniform(3, 6) * t + r.uniform(0, 6)) + 0.3 * r.standard_normal() , 0, None)
+        talk = lp((r.random(n) < 0.0005).astype(float), 0.4); talk = np.clip(talk / (talk.max() + 1e-9) * 3, 0.2, 1)
+        v = band * lp(syl, 12) * talk; v = 0.12 * gain * v / (np.abs(v).max() + 1e-9); pan = r.uniform(0.25, 0.75)
+        mix[:, 0] += v * (1 - pan); mix[:, 1] += v * pan
 # birds: short chirps (falling or rising sweeps with a little vibrato), far away and panned
 for k in range(nb):
     t0 = rng.uniform(0.2, max(0.3, dur - 0.5)); f0 = rng.uniform(2600, 4200); notes = rng.integers(2, 5); pan = rng.uniform(0.2, 0.8)
