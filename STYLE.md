@@ -217,6 +217,20 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - Sound: `make_ambience.py --water G` (running water with drops) and `--pour G` (a stream falling into water).
 - **Test scene** `shots_ca.js` (5.5 s): the jub at midday, low along the channel to the spout's stream.
 
+### Crowds and extras (v1.11.0, Nov 2026)
+
+- **`crowd.js`**: `extra({ seed, outfit, height })` builds a background person from toon.js with a seeded height
+  (0.92-1.06 of the hero), head size, skin tone, tunic or kilt colour, belt and hair. `toon.js` IK now follows the
+  character's size (limb lengths, grip offsets, finger radii), so scaled people walk, reach and hold correctly.
+- Loops, all pure functions of time: `walk(F, t, { path, speed, d0, groundAt })` (feet planted in world space while they
+  carry weight, lifted before they travel and set straight down; hips bob and sway, arms swing against the legs;
+  `line(a, b)` makes a straight path) and `chat(F, t, { pos, face, partner, talking })` (weight shifts, nods, an open-hand
+  gesture while talking, the mouth moving on their turn, blinks).
+- **Probe** `scripts/probe_crowd.mjs <engine> <duration>`: no planted foot slides (3 mm a frame at most), no two people
+  overlap, no sole below the ground; for every character in `_FS`. `qa.py` runs it for scenes that use crowd.js.
+- Sound: `make_ambience.py --murmur G` (a distant crowd talking, no words).
+- **Test scene** `shots_cr.js` (6 s): a Roman street with three walkers and two neighbours talking.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -286,6 +300,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Sets: props and plants on the ground, soles and palms of every character | `probe_rome.mjs` (any scene that sets `_SITE` and `_F` or `_FS` under `?dbg`; airborne effects set `userData.noGround`) | PASS |
 | Hands on ropes, handles and tools: contact, no fingers inside, wrist, reach | `probe_grasp.mjs <engine> <duration>`, hand bench `shots_hb.js` after hand changes | PASS |
 | Simulated ropes: stretch, ground, bodies | `probe_simrope.mjs <engine> <duration>` | PASS |
+| Crowds: foot skating, people overlapping, feet in the ground | `probe_crowd.mjs <engine> <duration>` | PASS |
 | Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -353,6 +368,9 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
+- A walk's stride must fit the leg: when the back foot is out of reach at the end of a step, IK drags it along (the
+  probe caught 5 mm of skating per frame). Shorten the stride or lower the hips a little (bent knees), and let a foot
+  rise before it travels and come straight down.
 - First caustics looked like squiggly worms (ridged noise), then like cracked tiles (a crisp cell net). What reads as
   caustics: thin lines with glowing crossings, curved edges, uneven brightness, always moving.
 - Verlet damping is per step: 0.993 at 480 Hz is thick air (the rope fell 0.9 m in half a second, like a feather).

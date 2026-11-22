@@ -22,9 +22,8 @@ session log at the bottom, then commit.
 ## Status (21 Nov 2026)
 
 Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
-(item 5: caustics) is released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
-before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. Next: item 8
-(crowds), then item 9 (speed).
+(item 5: caustics) and v1.11.0 (item 8: crowds) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
+before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. Next: item 9 (speed).
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
 v1.2.0 (Rome) before it; the owner liked the Roman test clip (21 Nov). v1.1.0
@@ -80,7 +79,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
    *Proof:* before/after stills side by side, highlights not clipping.
 7. **Skin and materials.** Wrap lighting or a cheap subsurface term so skin isn't plastic, slight roughness
    variation on clay, wood and linen.
-8. **Crowds and extras.** Reuse `toon.js` with different builds, skin tones, clothes and faces for background people,
+8. *(Done in v1.11.0: `crowd.js`, scale-aware IK, `probe_crowd.mjs`.)* **Crowds and extras.** Reuse `toon.js` with different builds, skin tones, clothes and faces for background people,
    driven by simple loops. *Proof:* bucket and body probes extended to all characters.
 9. **Speed.** Adaptive motion blur (fewer samples on slow shots, more on fast ones), and caching static shadow maps,
    so more videos fit in the 6 Kaggle hours.
@@ -162,3 +161,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   jub water, running water and pour sounds in `make_ambience.py`, a midday jub test scene. QA found the jub in the wall's
   shadow (no caustics: a dedicated scene with the sun along the channel), opaque water hiding the bed, and two looks that
   didn't read as caustics (worms, then cracked tiles) before the curved, uneven net.
+- **22 Nov 2026 (overnight, cont.):** Item 8, crowds (v1.11.0): `crowd.js` (seeded extras of different heights and looks,
+  walking and chatting loops), scale-aware IK in toon.js, `probe_crowd.mjs`, a crowd murmur in `make_ambience.py`, a
+  Roman street with five extras. QA caught a wide shot too narrow for both pavements, a close shot looking into empty
+  desert, a walker passing in front of the camera, and feet skating 5 mm a frame (a stride longer than the legs reach).

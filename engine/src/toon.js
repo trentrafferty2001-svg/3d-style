@@ -463,7 +463,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     t2.quaternion.setFromAxisAngle(ax, -bend); };
   // finger segments in world space: [[start, end, radius], ...] per finger (thumb last)
   const fingerLines = (s) => { const out = []; const W = (o, y) => o.localToWorld(V3(0, y, 0));
-    for (const f of [...fingers[s], fingers[s].thumb]) out.push(f.map((j, i) => [W(j, 0), W(j, -f.len[i]), i < 3 ? FR[Math.min(i, 2)] : FR[2]]));
+    for (const f of [...fingers[s], fingers[s].thumb]) out.push(f.map((j, i) => [W(j, 0), W(j, -f.len[i]), (i < 3 ? FR[Math.min(i, 2)] : FR[2]) * root.scale.x]));
     return out; };
   // closest distance between segments p1-q1 and p2-q2
   const segDist = (p1, q1, p2, q2) => {
@@ -508,7 +508,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     armIK(s, target, pole, hint = V3(0, 0, 1)) { this._arm2(s, target, pole, hint, 0.255 + 0.07); B[s + 'Wr'].quaternion.identity(); root.updateMatrixWorld(true); },
     // shoulder-elbow-(wrist or palm) two-bone solve: b = forearm length to the point being placed
     _arm2(s, target, pole, hint, b) {
-      const a = 0.28;
+      const k = root.scale.x, a = 0.28 * k; b *= k; // limb lengths follow the character's size (crowds: v1.11)
       root.updateMatrixWorld(true);
       const S = B[s + 'Sh'].getWorldPosition(V3(0, 0, 0));
       const D = target.clone().sub(S); const d = Math.min(D.length(), a + b - 1e-3); const dir = D.normalize();
@@ -521,7 +521,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     },
     // two-bone IK: ankle to target (world), knee towards pole; foot kept level, pointing along yaw (radians, world)
     legIK(s, target, pole, footYaw = null) {
-      const a = 0.43, b = 0.42;
+      const k = root.scale.x, a = 0.43 * k, b = 0.42 * k;
       root.updateMatrixWorld(true);
       const S = B[s + 'Hip'].getWorldPosition(V3(0, 0, 0));
       const D = target.clone().sub(S); const d = Math.min(D.length(), a + b - 1e-3); const dir = D.normalize();
@@ -555,7 +555,7 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
       root.updateMatrixWorld(true);
       const gapFrom = (f, j) => { f[j].updateMatrixWorld(true); let m = 1e9;
         for (let i = j; i < f.length; i++) { const st = f[i].localToWorld(V3(0, 0, 0)), en = f[i].localToWorld(V3(0, -f.len[i], 0));
-          m = Math.min(m, segDist(st, en, A, Bq) - R - (f === fingers[s].thumb ? 0.011 : FR[i])); }
+          m = Math.min(m, segDist(st, en, A, Bq) - R - (f === fingers[s].thumb ? 0.011 : FR[i]) * root.scale.x); }
         return m; };
       // march a joint from lo to hi in small steps; stop at the first touch and refine it
       const close = (f, j, set, lo, hi) => {
@@ -593,8 +593,8 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
         const Z = Ax.clone().multiplyScalar(Ax.dot(tt) < 0 ? -1 : 1), X = Y.clone().cross(Z).normalize();
         Rm.makeBasis(X, Y, Z);
         // the axis runs across the base of the fingers, r beyond the skin of the palm (palm side = -sx x)
-        wrist = P.clone().sub(V3(-sx * (0.015 + cyl.r), -0.085, -0.002).applyMatrix4(Rm));
-        const E = this._arm2(s, wrist, pl, Z, 0.255); F.reachShort = F.reachShort || {}; F.reachShort[s] = Math.max(0, wrist.distanceTo(S) - 0.534); // > 0: the arm can't reach
+        const ks = root.scale.x; wrist = P.clone().sub(V3(-sx * (0.015 * ks + cyl.r), -0.085 * ks, -0.002 * ks).applyMatrix4(Rm));
+        const E = this._arm2(s, wrist, pl, Z, 0.255); F.reachShort = F.reachShort || {}; F.reachShort[s] = Math.max(0, wrist.distanceTo(S) - 0.534 * root.scale.x); // > 0: the arm can't reach
         if (!up) upv = E.clone().sub(wrist);                    // second pass: the hand follows the forearm
       }
       const q = new THREE.Quaternion().setFromRotationMatrix(Rm); B[s + 'El'].getWorldQuaternion(_q2);

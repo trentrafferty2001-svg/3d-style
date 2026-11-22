@@ -3,6 +3,15 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.11.0 (22 Nov 2026) = commit PENDING
+Crowds and extras (backlog item 8). The channels stay on v1.0.0 until the owner moves them.
+
+- `crowd.js` (new): `extra()` (seeded heights, faces, skin tones, clothes), `walk()` (planted feet, lift then travel,
+  arm swing), `chat()` (turn-taking talk with gestures and nods), `line()`.
+- `toon.js`: IK, `hold()` and the grasp follow the character's size (characters at scale 1 are unchanged).
+- QA: `probe_crowd.mjs` (foot skating, overlaps, ground), run by `qa.py`. `make_ambience.py --murmur`.
+  Test scene `shots_cr.js`.
+
 ## v1.10.0 (22 Nov 2026) = commit 30b09f2392124b46f8bec47107f81b38dfd93701
 Caustics (backlog item 5 finished). The channels stay on v1.0.0 until the owner moves them.
 
