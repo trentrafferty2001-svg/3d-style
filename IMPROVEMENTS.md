@@ -94,7 +94,8 @@ The owner picked the order: items A-C first, then D-E, then F. Same rules as abo
 `scripts/qa.py`, a short clip per item, docs, merge). The owner will use the newest version from January; when they say
 they are starting January content, move the channel pins (see "Channels stay pinned") to the latest release.
 
-A. **Cloth folds.** Tunics and kilts are smooth shells (boxy shoulders in close-ups, only the hem swings). Folds and
+A. *(Done in v1.14.0: folds, shoulders, belt, leg drape and push, creases, `probe_cloth.mjs`, cloth bench `shots_cl.js`.)*
+   **Cloth folds.** Tunics and kilts are smooth shells (boxy shoulders in close-ups, only the hem swings). Folds and
    wrinkles that follow the body (bump/normal detail plus a few modelled folds at the belt, elbows and knees).
    *Proof:* close-up stills front and side, kilt probe, palm-vs-cloth probe.
 B. **Hair and beards.** Hair is a smooth cap. A few hairstyles (short curls, braids, shaved with a fringe, a headcloth)
@@ -110,9 +111,13 @@ F. **Automatic framing checks.** Most test scenes needed manual camera fixes (cr
 Later: indoor scenes and firelight, animals, rivers and seas, weather (dust, smoke, rain), a faster crowd ground lookup
 (crowd scenes render at 4 s a frame on Kaggle), code-made footsteps on sand, stone and water, a tongue and lower teeth.
 
-Render farm: since 22 Nov the GitHub farm (the-ai-frontier-media, render-farm branch) also captures JPEG 98 frames; the
-first test run of it (job `style3d-farmjpeg-hands`, same scene as run 127 which took 22 min with PNG) was in progress
-when this was written: check its time and that the video matches before relying on it.
+Render farm: since 22 Nov the GitHub farm (the-ai-frontier-media, render-farm branch) also captures JPEG 98 frames. Test
+(run 132, job `style3d-farmjpeg-hands`, against run 127 with PNG, same job): 18.6 min against 22.2 min end to end, but the
+rendering itself took the same (139 against 141 runner-minutes, slowest chunk 9:20 against 9:28): the farm renders on the
+CPU, where a frame takes about a minute and the screenshot is a small part of it. The 3.6 min saved came from joining
+(43 s against 62 s) and above all publishing to the render-out branch (7:17 against 10:18), which varies run to run. The
+video matches (43.1 dB average PSNR, 41.9 minimum, visually identical; both pass the pop scan). JPEG stays on; the farm's
+slowest step is now pushing to the big render-out branch.
 
 ## How to work on an item
 
@@ -207,3 +212,13 @@ when this was written: check its time and that the video matches before relying 
   faster, so the weekly 6 Kaggle hours now cover far more video. Chatting extras lip-sync made-up speech (`babble`).
 - **22 Nov 2026 (overnight, cont.):** v1.13.1: `qa.py` runs the shaduf demo's probes and reads formula durations and cuts
   from the page, so every test scene (including the demo) is covered by the one command.
+- **22 Nov 2026 (session 3):** The owner agreed a new backlog (A-F) and asked for A-C first. Checked the farm's JPEG test
+  first (run 132 vs 127, see "Render farm" above: same video, the render time unchanged, the saving was in publishing).
+  Item A, cloth folds (v1.14.0): fold fields on every garment, a shoulder that rounds into the sleeve, a belt laid on
+  cloth cinched to the body, legs that drape and push the skirt in the shader, linen creases, `probe_cloth.mjs`, a cloth
+  bench (`shots_cl.js`) and a test scene (`shots_cf.js`). QA caught: a belt floating 4 cm off the back (then 8 mm, from an
+  angle measured before scaling), a hole behind a raised arm and the arm's cap through the shoulder (weights, then a
+  rounding that pulled cloth into the skin), z-fighting between the sleeve and the shell, creases that stepped in 2x2-pixel
+  blocks, a raised thigh splitting the skirt, cloth pushed in between the legs, a probe blind to all this until it was
+  given the right bones and layers and proved on a broken copy, two swallowed lines (the scan now knows destructuring),
+  and probes reading a stale skin pose for people of a shot not on screen.

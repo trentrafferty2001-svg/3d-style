@@ -42,20 +42,107 @@ function texes() {
   return _tex;
 }
 
-// linen flutter: small travelling ripples towards the hem (attribute hemk: 0 at the waist, 1 at the hem), applied
-// before skinning so they ride on the swinging kilt. Own cache key (see nile.js windMaterial).
-function kiltFlutter(m) {
-  m.customProgramCacheKey = () => 'kiltFlutter';
+// Cloth shading (v1.14, replaces the v1.0 kiltFlutter):
+//  - flutter: small travelling ripples towards the hem (attribute hemk: 0 at the waist, 1 at the hem), before skinning
+//    so they ride on the swinging skirt;
+//  - legs push the skirt: after skinning, any skirt point inside a leg's capsule (hip-knee-ankle, uniforms set from the
+//    bones before every draw) is pushed out to its surface plus a little room, so a stepping thigh or a bent knee moves
+//    the cloth instead of poking through it. clothPush() below is the same function in JS, for the probes;
+//  - linen wrinkles: fine creases as normal detail, mostly running down the cloth, taken from the rest-pose position so
+//    they never swim. Own cache key (see nile.js windMaterial).
+export const CLOTH = { wrinkle: 1.6, room: 0.012 };
+if (typeof location !== 'undefined' && /[?&]nowrinkle/.test(location.search)) CLOTH.wrinkle = 0; // ?nowrinkle: a check without the creases
+export const LEG_R = [0.088, 0.056, 0.046];                     // leg capsule radius at hip, knee, ankle (rest scale)
+function clothShading(m, { name, wrinkle = CLOTH.wrinkle } = {}) {
+  m.customProgramCacheKey = () => 'clothShading:' + name + ':' + wrinkle;
+  const U = m.userData.legs = { uLeg: { value: [...Array(6)].map(() => new THREE.Vector3(0, -9, 0)) }, uLegR: { value: new THREE.Vector3(...LEG_R) }, uRoom: { value: CLOTH.room } };
   m.onBeforeCompile = (sh) => {
-    sh.uniforms.uTime = TIME;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uTime; attribute float hemk;')
+    sh.uniforms.uTime = TIME; Object.assign(sh.uniforms, U); sh.uniforms.uWrinkle = { value: CLOTH.wrinkle ? wrinkle : 0 }; // ?nowrinkle turns every cloth's creases off
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>
+        uniform float uTime, uRoom; uniform vec3 uLeg[6]; uniform vec3 uLegR; attribute float hemk; varying vec3 vRest;
+        // out of a leg's capsule, always outwards from the body's centre line C (straight out from the leg, cloth on the
+        // inner side of a thigh went in between the legs)
+        vec3 legPush( vec3 p, vec3 a, vec3 b, float ra, float rb, vec3 C ) {
+          vec3 ab = b - a; float h = clamp( dot( p - a, ab ) / dot( ab, ab ), 0.0, 1.0 ); vec3 c = a + ab * h;
+          vec3 d = p - c; d.y *= 0.25; float L = length( d ), r = mix( ra, rb, h ) + uRoom, e = 0.012;
+          if ( L >= r + 4.0 * e || L < 1e-5 ) return vec3( 0.0 );
+          // soft: the new distance r + e*softplus((L - r)/e) rises with the old one, so neighbouring points never pass each
+          // other (a hard push onto the surface crumpled the cloth over a knee)
+          float L2 = r + e * log( 1.0 + exp( ( L - r ) / e ) );
+          vec3 n = p - C; n.y = 0.0; n = normalize( n + vec3( 1e-5, 0.0, 0.0 ) );
+          return n * ( L2 - L ) / max( dot( n, d / L ), 0.5 ); }
+        // a lifted thigh carries the cloth in front of it: from the waist over the top of the knee, then hanging down
+        // (s = how far down the skirt this point is, from the waist); tents across to the other leg
+        vec3 legDrape( vec3 p, float s, vec3 H, vec3 K ) {
+          vec3 t = normalize( K - H ); float wl = smoothstep( 0.25, 0.75, 1.0 + t.y ); if ( wl <= 0.0 ) return p;
+          vec3 f = normalize( vec3( t.x, 0.0, t.z ) + 1e-5 ), sd = normalize( cross( vec3( 0.0, 1.0, 0.0 ), f ) );
+          float lat = dot( p - H, sd ), w = wl * exp( - lat * lat / 0.0121 ) * smoothstep( -0.04, 0.06, dot( p - H, f ) ) * smoothstep( 0.0, 0.08, s );
+          if ( w <= 0.0 ) return p;
+          vec3 W = H + vec3( 0.0, 0.15, 0.0 ) + f * 0.13 + sd * lat, Kt = K + vec3( 0.0, uLegR.y + uRoom + 0.004, 0.0 ) + sd * lat * 0.85;
+          float L1 = length( Kt - W );
+          vec3 q = s <= L1 ? W + ( Kt - W ) * ( s / L1 ) : Kt + normalize( vec3( f.x * 0.15, -1.0, f.z * 0.15 ) ) * ( s - L1 );
+          return mix( p, q, w ); }`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vRest = position;
         float ka = atan(position.x, position.z);
         float gust = 0.6 + 0.4 * sin(uTime * 0.9 + 1.3);
         float fl = (sin(ka * 7.0 + uTime * 6.1) + 0.55 * sin(ka * 12.0 - uTime * 8.3) + 0.35 * sin(ka * 3.0 + uTime * 3.7)) * gust;
-        transformed += normalize(vec3(position.x, 0.0, position.z) + 1e-5) * hemk * hemk * 0.008 * fl;`);
+        transformed += normalize(vec3(position.x, 0.0, position.z) + 1e-5) * hemk * hemk * 0.008 * fl;`)
+      .replace('#include <skinning_vertex>', `#include <skinning_vertex>
+        { float below = smoothstep( 1.035, 0.985, position.y );   // the skirt below the belt meets the legs (fading in from 1.02 to 0.9, a walking thigh came 5 cm out at the back)
+          if ( below > 0.0 ) { vec3 q = transformed; float sk = 1.06 - position.y;
+            for ( int i = 0; i < 2; i++ ) q = legDrape( q, sk, uLeg[i * 3], uLeg[i * 3 + 1] );
+            vec3 C = ( uLeg[0] + uLeg[3] ) * 0.5;
+            for ( int it = 0; it < 4; it++ ) { int i = it % 2; vec3 hp = uLeg[i * 3], kn = uLeg[i * 3 + 1], an = uLeg[i * 3 + 2]; // both legs, twice
+              q += legPush( q, hp, kn, uLegR.x, uLegR.y, C ); q += legPush( q, kn, an, uLegR.y, uLegR.z, C ); }
+            transformed = mix( transformed, q, below ); } }`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+        uniform float uWrinkle; varying vec3 vRest;
+        float clHash( vec3 p ) { p = fract( p * 0.3183099 + 0.1 ); p *= 17.0; return fract( p.x * p.y * p.z * ( p.x + p.y + p.z ) ); }
+        float clNoise( vec3 x ) { vec3 i = floor( x ), f = fract( x ); f = f * f * ( 3.0 - 2.0 * f );
+          return mix( mix( mix( clHash( i ), clHash( i + vec3( 1, 0, 0 ) ), f.x ), mix( clHash( i + vec3( 0, 1, 0 ) ), clHash( i + vec3( 1, 1, 0 ) ), f.x ), f.y ),
+                      mix( mix( clHash( i + vec3( 0, 0, 1 ) ), clHash( i + vec3( 1, 0, 1 ) ), f.x ), mix( clHash( i + vec3( 0, 1, 1 ) ), clHash( i + vec3( 1, 1, 1 ) ), f.x ), f.y ), f.z ); }
+        // creases: ridged noise stretched along the cloth's fall (long in y), plus a finer crinkle
+        // round the body on a circle (no seam at the back, where an angle would jump), long in y: creases run down the cloth
+        float clothH( vec3 p ) { vec2 c = normalize( p.xz + 1e-5 ) * 5.8;
+          vec3 q = vec3( c.x + clNoise( p * 6.0 ) * 0.8, c.y, p.y * 5.0 );
+          float r = 1.0 - abs( clNoise( q ) * 2.0 - 1.0 ), r2 = 1.0 - abs( clNoise( q * vec3( 1.9, 1.9, 2.2 ) + 7.0 ) * 2.0 - 1.0 );
+          return r * r * 0.65 + r2 * r2 * 0.35; }`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        { // the crease's gradient is taken exactly at this pixel (finite differences in the rest pose) and carried to the
+          // screen by the rest position's own derivatives, which are smooth over a triangle. Taking dFdx of the crease
+          // height itself stepped in 2x2-pixel blocks on the side of the chest.
+          const float e = 0.0015; float h0 = clothH( vRest );
+          vec3 g = vec3( clothH( vRest + vec3( e, 0.0, 0.0 ) ) - h0, clothH( vRest + vec3( 0.0, e, 0.0 ) ) - h0, clothH( vRest + vec3( 0.0, 0.0, e ) ) - h0 ) / e;
+          vec3 px = dFdx( vRest ), py = dFdy( vRest ); vec2 dH = vec2( dot( g, px ), dot( g, py ) );
+          float face = abs( dot( normal, normalize( vViewPosition ) ) );
+          // faded at grazing angles and where a crease is finer than the pixels (it would alias)
+          float fine = length( g ) * max( length( px ), length( py ) );
+          dH *= uWrinkle * smoothstep( 0.15, 0.45, face ) * ( 1.0 - smoothstep( 0.05, 0.18, fine ) );
+          normal = perturbNormalArb( - vViewPosition, normal, dH, faceDirection ); }`);
   };
   return m;
+}
+// JS twin of the shader's leg push (for probes): p in the cloth mesh's space, legs = [hip, knee, ankle] x 2 in the same
+// space, k = the character's scale
+export function clothPush(p, restY, legs, k = 1) {
+  if (restY >= 1.035) return p;
+  const below = SS(1.035, 0.985, restY), q = p.clone(), sk = 1.06 - restY;
+  for (let i = 0; i < 2; i++) { // legDrape, as in the shader
+    const H = legs[i * 3], K = legs[i * 3 + 1], t = K.clone().sub(H).normalize(), wl = SS(0.25, 0.75, 1 + t.y); if (wl <= 0) continue;
+    const f = new THREE.Vector3(t.x, 0, t.z).addScalar(1e-5).normalize(), sd = new THREE.Vector3(0, 1, 0).cross(f).normalize();
+    const lat = q.clone().sub(H).dot(sd), w = wl * Math.exp(-lat * lat / 0.0121) * SS(-0.04, 0.06, q.clone().sub(H).dot(f)) * SS(0, 0.08, sk); if (w <= 0) continue;
+    const W = H.clone().add(new THREE.Vector3(0, 0.15, 0)).addScaledVector(f, 0.13).addScaledVector(sd, lat), Kt = K.clone().add(new THREE.Vector3(0, LEG_R[1] + CLOTH.room + 0.004, 0)).addScaledVector(sd, lat * 0.85);
+    const L1 = Kt.distanceTo(W), tgt = sk <= L1 ? W.clone().lerp(Kt, sk / L1) : Kt.clone().addScaledVector(new THREE.Vector3(f.x * 0.15, -1, f.z * 0.15).normalize(), sk - L1);
+    q.lerp(tgt, w);
+  }
+  const C = legs[0].clone().add(legs[3]).multiplyScalar(0.5);
+  const push = (a, b, ra, rb) => { const ab = b.clone().sub(a), h = Math.min(1, Math.max(0, q.clone().sub(a).dot(ab) / ab.dot(ab))), c = a.clone().addScaledVector(ab, h);
+    const d = q.clone().sub(c); d.y *= 0.25; const L = d.length(), r = (ra + (rb - ra) * h) * k + CLOTH.room * k, e = 0.012; if (L >= r + 4 * e || L < 1e-5) return;
+    const L2 = r + e * Math.log(1 + Math.exp((L - r) / e));
+    const n = q.clone().sub(C); n.y = 0; n.x += 1e-5; n.normalize(); q.addScaledVector(n, (L2 - L) / Math.max(n.dot(d.clone().divideScalar(L)), 0.5)); };
+  for (let it = 0; it < 4; it++) { const i = it % 2; push(legs[i * 3], legs[i * 3 + 1], LEG_R[0], LEG_R[1]); push(legs[i * 3 + 1], legs[i * 3 + 2], LEG_R[1], LEG_R[2]); } // both legs, twice
+  return p.clone().lerp(q, below);
 }
 // Skin shading (v1.1): light wraps a little past the terminator and comes back warm, like light scattered under skin
 // (a cheap subsurface term, diffuse only: highlights still use the true angle). A soft view-facing rim lifts the
@@ -113,9 +200,9 @@ export function toonMaterials({ skin = 0x8e5434, cloth = 0xefe6d2, hair = 0x241a
   return {
     skin: skinShading(new THREE.MeshPhysicalMaterial({ color: skin, roughness: 0.55, bumpMap: T.pores, bumpScale: 0.25, sheen: 0.2, sheenRoughness: 0.45, sheenColor: new THREE.Color(0xffb08a), clearcoat: 0.12, clearcoatRoughness: 0.55 })),
     lip: new THREE.MeshPhysicalMaterial({ color: new THREE.Color(skin).multiplyScalar(0.72).lerp(new THREE.Color(0x8a3a30), 0.25), roughness: 0.4, clearcoat: 0.3 }),
-    cloth: kiltFlutter(new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.6, side: THREE.DoubleSide })),
+    cloth: clothShading(new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.22, side: THREE.DoubleSide }), { name: 'linen' }),
     belt: new THREE.MeshStandardMaterial({ color: belt, roughness: 0.8, bumpMap: T.weave, bumpScale: 0.4 }),
-    wool: new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.9, side: THREE.DoubleSide }),
+    wool: clothShading(new THREE.MeshStandardMaterial({ color: cloth, roughness: 1.0, roughnessMap: T.linenR, bumpMap: T.weave, bumpScale: 0.3, side: THREE.DoubleSide }), { name: 'wool', wrinkle: 1.3 }),
     hair: new THREE.MeshStandardMaterial({ color: hair, roughness: 1.0, bumpMap: T.pores, bumpScale: 2.5 }),
     brow: new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 0.95 }),
     eyeW: new THREE.MeshPhysicalMaterial({ color: 0xe8dfd2, roughness: 0.3, clearcoat: 1, clearcoatRoughness: 0.05 }),
@@ -163,6 +250,7 @@ const prof = (keys) => (d) => {
   return keys[keys.length - 1][1];
 };
 
+const rng = (seed) => { let s = (Math.abs(seed) * 9301 + 49297) % 233280; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
 // outfit: 'kilt' (linen shendyt, bare chest) or 'tunic' (knee-length belted tunic with short sleeves, e.g. Roman or Greek)
 export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outfit = 'kilt' } = {}) {
   const M = toonMaterials({ skin, cloth, hair, belt });
@@ -190,26 +278,26 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
   // torsoGeo(off, y0, y1): the same shaped body, pushed out by off (a tunic over it uses off > 0 and the same weights,
   // so cloth follows every bend of the body underneath)
   const torsoW = (y) => y < 1.04 ? [[I.hips, 1]] : y < 1.22 ? blend2(I.hips, I.spine, 1.04, 1.22, y).concat() : y < 1.42 ? blend2(I.spine, I.chest, 1.22, 1.36, y) : blend2(I.chest, I.neck, 1.44, 1.52, y);
+  const TR = prof([[0.84, 0.13], [0.9, 0.152], [1.0, 0.142], [1.08, 0.138], [1.2, 0.158], [1.3, 0.17], [1.38, 0.168], [1.44, 0.15], [1.49, 0.1], [1.52, 0.04], [1.53, 0.001]]);
   const torsoGeo = (off = 0, y0 = 0.84, y1 = 1.505, closed = true, loose = false) => {
     const R = prof([[0.84, 0.13], [0.9, 0.152], [1.0, 0.142], [1.08, 0.138], [1.2, 0.158], [1.3, 0.17], [1.38, 0.168], [1.44, 0.15], [1.49, 0.1], [1.52, 0.04], [1.53, 0.001]]); // fuller trapezius slope up into the neck
     const pts = closed ? [[0.001, y0 - 0.02]] : [];
     // loose cloth: a little extra fullness above the belt (it blouses over it), none at the neck
     const ofs = (y) => off + (loose ? 0.016 * G((y - 1.1) / 0.08) + 0.006 * SS(1.45, 1.2, y) : 0);
-    for (let i = 0; i <= 64; i++) { const y = y0 + (y1 - y0) * i / 64; pts.push([R(y) + ofs(y), y]); }
+    const rows = loose ? 110 : 64; for (let i = 0; i <= rows; i++) { const y = y0 + (y1 - y0) * i / rows; pts.push([R(y) + ofs(y), y]); }
     if (loose) { // cloth doesn't follow every change of curvature: smooth the profile (removes faint bands across the chest)
       const n0 = closed ? 1 : 0, rr = pts.map(q => q[0]);
-      for (let pass = 0; pass < 3; pass++) for (let i = n0 + 1; i < pts.length - 1; i++) pts[i][0] = (rr[i - 1] + 2 * rr[i] + rr[i + 1]) / 4, rr[i] = pts[i][0];
+      for (let pass = 0; pass < 10; pass++) for (let i = n0 + 1; i < pts.length - 1; i++) pts[i][0] = (rr[i - 1] + 2 * rr[i] + rr[i + 1]) / 4, rr[i] = pts[i][0];
     }
-    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), loose ? 72 : 48);
+    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), loose ? 180 : 48);
     // shape: wide shoulders, flatter front-to-back, a little chest and belly in front, shoulder blades behind
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
       const sxw = 1.12 + 0.3 * SS(1.2, 1.41, y) * (1 - SS(1.45, 1.5, y)); // shoulders wide enough to tuck the arm caps in
       x *= sxw; z *= 0.66;
-      if (loose) { // cloth bridges the muscles (no chest or shoulder blades) and hangs in soft vertical folds below the chest
-        const a = Math.atan2(x, z), f = 1 + 0.022 * SS(1.32, 1.12, y) * (Math.sin(a * 7 + 0.4) * 0.7 + Math.sin(a * 13 + 1.9) * 0.3);
-        x *= f; z *= f; if (z > 0) z += 0.01 * SS(1.18, 1.3, y) * (1 - SS(1.36, 1.44, y));
+      if (loose) { // cloth bridges the muscles (no chest or shoulder blades), and the tunic adds its folds (v1.14)
+        if (z > 0) z += 0.01 * SS(1.18, 1.3, y) * (1 - SS(1.36, 1.44, y));
       } else {
       if (z > 0) z += 0.018 * SS(1.18, 1.3, y) * (1 - SS(1.36, 1.44, y)) * G((Math.abs(x) - 0.08) / 0.09); // chest
       if (z > 0) z += 0.012 * SS(0.92, 1.0, y) * (1 - SS(1.06, 1.14, y)) * G(x / 0.1); // belly
@@ -222,6 +310,11 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     return g;
   };
   addSkinned(torsoGeo(), M.skin, 'torso');
+  // the bare torso's radius by angle a = atan2(x, z) and height (exact for the lathe and its x/z scaling; the chest and
+  // belly bumps are added as their peaks): the cloth is cinched onto it under the belt
+  const bodyR = (a, y) => { const R = TR(y), A = R * (1.12 + 0.3 * SS(1.2, 1.41, y) * (1 - SS(1.45, 1.5, y))), Bz = R * 0.66;
+    const e = 1 / Math.sqrt((Math.sin(a) / A) ** 2 + (Math.cos(a) / Bz) ** 2);
+    return e + (Math.cos(a) > 0 ? Math.cos(a) * 0.012 * SS(0.92, 1.0, y) * (1 - SS(1.06, 1.14, y)) : 0); };
   // ---------- neck ----------
   {
     const g = limbGeo(0.2, prof([[0, 0.072], [0.08, 0.066], [0.2, 0.066]]), // d is measured down from the top: the top (inside the head) follows the head, the base follows the chest
@@ -245,68 +338,134 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
     g.translate(hp.x, hp.y, hp.z);
     addSkinned(g, M.skin);
   }
-  // ---------- linen kilt (shendyt): pleated, flared, follows the thighs at the hem ----------
+  // ---------- cloth (v1.14): folds that follow the body. Every garment is a lathe shell deformed by its own fold field:
+  // gathers where the belt pinches the cloth, opening into fewer, deeper folds towards the hem, a hem that rises and
+  // falls with them, pull folds from the armpits, a shoulder that rounds into the sleeve. The cloth is cinched onto
+  // the body under the belt, and the belt is built on the cloth's own cross-section (it used to float off the back). ----------
+  const R0 = rng(seed * 7 + 3), ph = [...Array(8)].map(() => R0() * 6.283); // seeded fold phases: no two people fold alike
+  const YB = 1.045;                                                      // belt height (rest)
+  const skirtWeights = (y, x) => {
+    // the thighs carry the skirt a little (0.35: at 0.7 a raised thigh swung the skirt's side up like a sail and showed
+    // its inside); the legs' drape and push in clothShading do the rest
+    const k = SS(1.03, 0.75, y) * 0.35 * Math.min(1, Math.abs(x) / 0.07); const leg = x > 0 ? I.lHip : I.rHip;
+    const h = (1 - k) * 0.75 * SS(1.0, 0.62, y); // the hem swings on the kilt bone
+    return [[I.hips, 1 - k - h], [leg, k], [I.kilt, h]];
+  };
+  const hemAttr = (g) => { const p = g.attributes.position, hk = new Float32Array(p.count); for (let i = 0; i < p.count; i++) hk[i] = SS(1.0, 0.6, p.getY(i)); g.setAttribute('hemk', new THREE.BufferAttribute(hk, 1)); };
+  const zeroHem = (g) => g.setAttribute('hemk', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count), 1));
+  // pull a point radially (about the body's axis) so its distance is r
+  const toRadius = (x, z, r) => { const L = Math.hypot(x, z) || 1e-6; return [x / L * r, z / L * r]; };
+  // a skirt: top at y0 (just above the belt), length len; widths and fold style per garment
+  const skirt = ({ y0, len, r0, flare, sx, sz, pleats = 0, folds = 1, front = 0 }) => {
+    const pts = [];
+    for (let i = 60; i >= 0; i--) { const k = i / 60; const y = y0 - k * len; pts.push([r0 + 0.02 * Math.sin(k * 3) + flare * k * k + 0.022 * k, y]); } // bottom -> top
+    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 220);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const a = Math.atan2(x, z), k = (y0 - y) / len;
+      // gathers under the belt (many small folds) open into a few deep ones at the hem; phases wander a little with
+      // height so the folds aren't ruled lines
+      const w = a + 0.06 * Math.sin(y * 11 + ph[0]);
+      const gath = 0.55 * Math.sin(w * 19 + ph[1]) + 0.45 * Math.sin(w * 26 + ph[2]);
+      const drape = 0.55 * Math.sin(w * 9 + ph[3] + 0.4 * Math.sin(w * 2 + ph[4])) + 0.3 * Math.sin(w * 5 + ph[5]) + 0.15 * Math.sin(w * 14 + ph[6]);
+      const mix = SS(0.05, 0.6, k), f = gath * (1 - mix) + drape * mix;
+      let dr = folds * (0.0035 * SS(0.0, 0.08, k) * (1 - mix) + 0.03 * k * mix) * f;
+      if (pleats) dr += pleats * k * Math.sin(a * 22) + 0.4 * pleats * k * Math.sin(a * 7 + 1);
+      // the wrap's outer panel: proud of the layer under it, ending in a crisp vertical edge at the front
+      if (front) dr += (0.004 + front * k) * SS(-1.3, -0.9, a) * (1 - SS(0.5, 0.58, a));
+      const r = Math.hypot(x, z) + dr; [x, z] = toRadius(x, z, r);
+      x *= sx; z *= sz;
+      y -= 0.03 * k * k * Math.cos(a) * (z > 0 ? 1 : 0.5) * (front ? 1 : 0.5); // apron hem lower in front
+      y -= 0.012 * folds * k * k * (f + 1) * 0.5;                              // fold crests hang a little lower: a wavy hem
+      // cinch: the top of the skirt is pulled onto the body under the belt
+      const c = SS(YB - 0.03, YB - 0.018, y);
+      if (c > 0) { const rb = bodyR(Math.atan2(x, z), y) + 0.011, rr = Math.hypot(x, z); [x, z] = toRadius(x, z, rr + (rb - rr) * c); }
+      p.setXYZ(i, x, y, z);
+    }
+    g.computeVertexNormals(); skinByY(g, skirtWeights); hemAttr(g); return g;
+  };
+  let clothParts = [];
+  const ShJ = { l: wpos('lSh'), r: wpos('rSh') };
   if (outfit === 'kilt') {
-    const pts = [];
-    for (let i = 40; i >= 0; i--) { const k = i / 40; const y = 1.05 - k * 0.47; pts.push([0.168 + 0.022 * Math.sin(k * 3) + 0.05 * k * k + 0.025 * k, y]); } // bottom -> top (a fairly straight kilt)
-    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 96);
-    const p = g.attributes.position;
-    for (let i = 0; i < p.count; i++) {
-      let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-      const a = Math.atan2(x, z), k = (1.05 - y) / 0.47;
-      const pleat = 1 + 0.035 * k * Math.sin(a * 22) + 0.02 * k * Math.sin(a * 7 + 1);
-      const front = z > 0 ? 1 + 0.05 * k * G((a - 0.35) / 0.25) : 1; // the wrap's overlapping front panel
-      x *= 1.16 * pleat * front; z *= 0.78 * pleat * front;
-      p.setXYZ(i, x, y - 0.03 * k * k * Math.cos(a) * (z > 0 ? 1 : 0.5), z);
-    }
-    g.computeVertexNormals();
-    skinByY(g, (y, x) => {
-      const k = SS(1.03, 0.75, y) * 0.7 * Math.min(1, Math.abs(x) / 0.07); const leg = x > 0 ? I.lHip : I.rHip;
-      const h = (1 - k) * 0.75 * SS(1.0, 0.62, y); // the hem swings on the kilt bone
-      return [[I.hips, 1 - k - h], [leg, k], [I.kilt, h]];
-    });
-    const hk = new Float32Array(p.count); for (let i = 0; i < p.count; i++) hk[i] = SS(1.0, 0.6, p.getY(i)); g.setAttribute('hemk', new THREE.BufferAttribute(hk, 1));
-    addSkinned(g, M.cloth, 'kilt');
+    clothParts.push(addSkinned(skirt({ y0: 1.06, len: 0.48, r0: 0.168, flare: 0.05, sx: 1.16, sz: 0.78, pleats: 0.035 * 0.17, folds: 0.25, front: 0.012 }), M.cloth, 'kilt'));
   }
-  // ---------- tunic: body shell (the torso's own shape, pushed out, same weights), a skirt that swings on the kilt bone,
-  // short sleeves on the upper arms. Open at the neck and the hem; the belt hides the seam at the waist. ----------
+  // ---------- tunic: the body shell (the torso's own shape pushed out, same weights, folded), a skirt that swings on
+  // the kilt bone, and short sleeves that grow out of the shoulder. The belt hides the seam at the waist. ----------
   if (outfit === 'tunic') {
-    addSkinned(torsoGeo(0.02, 0.99, 1.492, false, true), M.wool, 'tunic');
-    const pts = [];
-    for (let i = 40; i >= 0; i--) { const k = i / 40; const y = 1.06 - k * 0.47; pts.push([0.172 + 0.02 * Math.sin(k * 3) + 0.045 * k * k + 0.02 * k, y]); } // bottom -> top
-    const g = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 96);
-    const p = g.attributes.position;
+    const g = torsoGeo(0.02, 0.99, 1.492, false, true), p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
-      let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-      const a = Math.atan2(x, z), k = (1.06 - y) / 0.47;
-      const fold = 1 + 0.03 * k * Math.sin(a * 9 + 0.6) + 0.015 * k * Math.sin(a * 5 + 2.1); // soft wool folds, not pleats
-      x *= 1.14 * fold; z *= 0.8 * fold;
-      p.setXYZ(i, x, y - 0.015 * k * k * Math.cos(a), z);
+      let x = p.getX(i), y = p.getY(i), z = p.getZ(i); const a = Math.atan2(x, z), ax = Math.abs(x), sx = Math.sign(x) || 1;
+      let r = Math.hypot(x, z);
+      // blousing: soft gathers just above the belt, fading up the chest; their phases follow the skirt's
+      const w = a + 0.1 * Math.sin(y * 9 + ph[0] + a * 2) + 0.04 * Math.sin(a * 5 + ph[4]);
+      const bl = SS(YB + 0.0, YB + 0.03, y) * (1 - SS(YB + 0.05, YB + 0.2, y + 0.04 * Math.sin(a * 3 + ph[6])));
+      r += 0.0055 * bl * (0.5 * Math.sin(w * 13 + ph[1]) + 0.3 * Math.sin(w * 7 + ph[7]) + 0.2 * Math.sin(w * 22 + ph[3]));
+      // pull folds: from each armpit diagonally down and in across the chest and the back (cloth hanging from the
+      // shoulder and caught at the belt), two or three soft ridges that fade out
+      const u = (ax - 0.215) * 0.62 + (y - 1.33) * 0.78, v = -(ax - 0.215) * 0.78 + (y - 1.33) * 0.62; // u across, v along a fold
+      const band = SS(0.02, -0.04, v) * SS(-0.24, -0.1, v) * SS(-0.05, 0.0, u) * SS(0.09, 0.03, u);
+      r += 0.0045 * band * Math.sin(u * 95 + ph[2]) * (z > 0 ? 1 : 0.8);
+      // back: a soft vertical fold either side of the spine
+      if (z < 0) r += 0.003 * G((ax - 0.07) / 0.025) * SS(1.08, 1.2, y) * (1 - SS(1.3, 1.42, y));
+      [x, z] = toRadius(x, z, r);
+      // the shoulder: the cloth rounds over the arm's cap (deltoid) instead of a flat top meeting the sleeve at a corner
+      { const J = ShJ[sx > 0 ? 'l' : 'r'], d = V3(x, y, z).sub(J), L = d.length(), rho = 0.078, e = 0.018; // broad and soft: a tighter one read as a ball on each shoulder
+        if (L < rho + 3 * e && L > 1e-4 && d.y > -0.1) { const L2 = L + e * Math.log1p(Math.exp((rho - L) / e)) - e * Math.log1p(Math.exp(-3)); const k = SS(-0.1, 0.0, d.y);
+          const n = V3(sx * Math.max(sx * d.x, 0), Math.max(d.y, 0), d.z).normalize(); // outwards and up only: pushed towards the neck it went under the skin
+          const q = V3(x, y, z).addScaledVector(n, (Math.max(L, L2) - L) * k); x = q.x; y = q.y; z = q.z; } }
+      // cinch at the belt: the bottom edge is pulled onto the body
+      const c = SS(YB + 0.03, YB + 0.018, y);
+      if (c > 0) { const rb = bodyR(a, y) + 0.009, rr = Math.hypot(x, z); [x, z] = toRadius(x, z, rr + (rb - rr) * c); }
+      p.setXYZ(i, x, y, z);
     }
-    g.computeVertexNormals();
-    skinByY(g, (y, x) => {
-      const k = SS(1.03, 0.75, y) * 0.7 * Math.min(1, Math.abs(x) / 0.07); const leg = x > 0 ? I.lHip : I.rHip;
-      const h = (1 - k) * 0.75 * SS(1.0, 0.62, y);
-      return [[I.hips, 1 - k - h], [leg, k], [I.kilt, h]];
-    });
-    const hk = new Float32Array(p.count); for (let i = 0; i < p.count; i++) hk[i] = SS(1.0, 0.6, p.getY(i)); g.setAttribute('hemk', new THREE.BufferAttribute(hk, 1));
-    addSkinned(g, M.cloth, 'kilt'); // named 'kilt' so the kilt probes and F.kilt() work on it too
+    g.computeVertexNormals(); zeroHem(g);
+    skinByY(g, torsoW); // the shell stays on the chest: the arm's cap turns inside the rounded shoulder
+    clothParts.push(addSkinned(g, M.wool, 'tunic'));
+    { // a rolled hem round the neckline
+      const rows = p.count / 181, pts = []; // lathe order: 181 columns of `rows` points, bottom to top; the last is the neckline
+      for (let c = 0; c < 180; c += 2) { const j = c * rows + rows - 1; pts.push(V3(p.getX(j), p.getY(j) - 0.002, p.getZ(j))); }
+      const ng = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 96, 0.0045, 8, true); skinByY(ng, torsoW); zeroHem(ng);
+      clothParts.push(addSkinned(ng, M.wool, 'neckline'));
+    }
+    clothParts.push(addSkinned(skirt({ y0: 1.065, len: 0.475, r0: 0.172, flare: 0.045, sx: 1.14, sz: 0.8, folds: 1 }), M.cloth, 'kilt')); // named 'kilt' so the kilt probes and F.kilt() work on it too
     for (const s of ['l', 'r']) { // short sleeves: open at the elbow end, the top tucks into the shell
       // wide enough to carry the shoulder line down past the armpit (a T-tunic), so the arm comes out of the sleeve's hem,
-      // not from under the body of the tunic
+      // not from under the body of the tunic. v1.14: a little flare and soft folds round the hem, a hem that isn't
+      // ruler-straight, and the dome over the shoulder partly follows the chest, so a raised arm stretches the cloth
+      // between them instead of lifting a rigid tube out of the shell.
       const sh = wpos(s + 'Sh'), L = 0.21, sp = [];
-      for (let i = 0; i <= 14; i++) { const d = L - (i / 14) * L; sp.push([0.078 + 0.014 * (d / L), -d]); }
-      for (let i = 1; i <= 8; i++) { const a = (i / 8) * Math.PI / 2; sp.push([Math.max(1e-4, 0.078 * Math.cos(a)), 0.066 * Math.sin(a)]); } // dome over the arm's shoulder cap
-      const sg = new THREE.LatheGeometry(sp.map(([a, b]) => new THREE.Vector2(a, b)), 32); sg.scale(1, 1, 0.92);
-      skinByY(sg, () => [[I[s + 'Sh'], 1]]); sg.translate(sh.x, sh.y, sh.z);
-      addSkinned(sg, M.wool, 'sleeve');
+      // the top is tucked inside the shell (6.6 cm, the arm is 5.8): at 7.8 cm its side lay within a millimetre of the shell's
+      // and the two z-fought in stepped patches. It widens below the shell's edge and flares to the hem.
+      const sr = (d) => 0.066 + 0.012 * SS(0.0, 0.07, d) + 0.024 * (d / L) ** 1.3;
+      for (let i = 0; i <= 24; i++) { const d = L - (i / 24) * L; sp.push([sr(d), -d]); }
+      for (let i = 1; i <= 8; i++) { const a = (i / 8) * Math.PI / 2; sp.push([Math.max(1e-4, 0.066 * Math.cos(a)), 0.04 * Math.sin(a)]); } // a low dome over the arm's cap, inside the shell (which rounds over the cap)
+      const sg = new THREE.LatheGeometry(sp.map(([a, b]) => new THREE.Vector2(a, b)), 72); sg.scale(1, 1, 0.92);
+      const q = sg.attributes.position;
+      for (let i = 0; i < q.count; i++) { let x = q.getX(i), y = q.getY(i), z = q.getZ(i); const a = Math.atan2(x, z), d = Math.max(0, -y) / L;
+        const f = 0.6 * Math.sin(a * 6 + ph[3] + (s === 'l' ? 0 : 1.7)) + 0.4 * Math.sin(a * 11 + ph[5]);
+        const r = Math.hypot(x, z) + 0.004 * d * d * f; [x, z] = toRadius(x, z, r); y -= 0.006 * d * d * (f + 1) * 0.5;
+        q.setXYZ(i, x, y, z); }
+      sg.computeVertexNormals();
+      skinByY(sg, (y) => { const k = 1 - 0.5 * SS(0.0, 0.05, y); return [[I[s + 'Sh'], k], [I.chest, 1 - k]]; });
+      sg.translate(sh.x, sh.y, sh.z); zeroHem(sg); // the dome's top half stays with the chest: a raised arm lifted it out of the shell
+      clothParts.push(addSkinned(sg, M.wool, 'sleeve'));
     }
   }
-  // belt sash (rigid, on the hips)
+  // the legs push the skirt (clothShading): leg capsules in the cloth's space, set from the bones before every draw
+  const legPts = () => ['l', 'r'].flatMap(s => [s + 'Hip', s + 'Kn', s + 'An'].map(n => clothParts[0].worldToLocal(B[n].getWorldPosition(V3(0, 0, 0)))));
+  for (const mesh of clothParts) mesh.onBeforeRender = () => { const L = mesh.material.userData.legs; if (L) legPts().forEach((v, i) => L.uLeg.value[i].copy(v)); };
+  // belt sash (rigid, on the hips), laid round the cloth's own cross-section at belt height so it sits on the cloth
   {
-    const g = new THREE.TorusGeometry(0.163, 0.012, 10, 64); g.rotateX(Math.PI / 2); if (outfit === 'tunic') g.scale(1.29, 1.5, 0.95); else g.scale(1.17, 1.6, 0.8); // over the tunic's skirt top
-    const m = new THREE.Mesh(g, M.belt); m.position.y = 0.065; m.castShadow = true; B.hips.add(m);
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 12), M.belt); knot.scale.set(1.1, 0.8, 0.6); knot.position.set(0.06, 0.062, 0.118); B.hips.add(knot);
+    // the cloth under the belt is cinched to the body + 1.1 cm (the skirt, the outer layer), so the belt is laid on that
+    const N = 96, cin = outfit === 'tunic' || outfit === 'kilt' ? 0.011 : 0.004;
+    const sm2 = [...Array(N)].map((_, i) => bodyR((i / N) * 2 * Math.PI, YB) + cin);
+    const tr = 0.011, loop = new THREE.CatmullRomCurve3(sm2.map((r, i) => { const a = (i / N) * 2 * Math.PI; return V3(Math.sin(a) * (r + tr * 0.45), 0, Math.cos(a) * (r + tr * 0.45)); }), true);
+    const bg = new THREE.TubeGeometry(loop, 160, tr, 10, true); bg.scale(1, 1.55, 1);
+    const m = new THREE.Mesh(bg, M.belt); m.position.y = YB - 0.98; m.castShadow = true; B.hips.add(m);
+    const kr = sm2[Math.round(0.45 / (2 * Math.PI) * N)];
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 12), M.belt); knot.scale.set(1.1, 0.8, 0.6);
+    knot.position.set(Math.sin(0.45) * (kr + 0.014), YB - 0.98 - 0.003, Math.cos(0.45) * (kr + 0.014)); knot.rotation.y = 0.45; B.hips.add(knot);
   }
 
   // ---------- head ----------
@@ -601,6 +760,12 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
       B[s + 'Wr'].quaternion.copy(_q2.invert().multiply(q)); root.updateMatrixWorld(true);
       return this.grasp(s, cyl, { press });
     },
+    // point with hand s (after grip()): the index finger straightens by k, the other three curl into the palm, the thumb
+    // tucks across them (v1.14)
+    point(s, k = 1) { const sx = s === 'l' ? 1 : -1, f = fingers[s];
+      const [a1, a2, a3] = f[0]; a1.rotation.set(0.03, 0, a1.rotation.z * (1 - k) - sx * 0.05 * k); a2.rotation.z *= 1 - k; a3.rotation.z *= 1 - k;
+      for (let i = 1; i < 4; i++) { const [b1, b2, b3] = f[i]; b1.rotation.z += (-sx * 1.35 - b1.rotation.z) * k; b2.rotation.z += (-sx * 1.5 - b2.rotation.z) * k; b3.rotation.z += (-sx * 1.0 - b3.rotation.z) * k; }
+      thumbPose(s, 0.25 + 1.0 * k, 0.15 + 0.8 * k); root.updateMatrixWorld(true); },
     wristBend(s) { const q = B[s + 'Wr'].quaternion; return 2 * Math.acos(Math.min(1, Math.abs(q.w))); },
     fingerLines(s) { return fingerLines(s); },
     // face: brow -1 (frown/strain) .. 1 (raised), smile -1..1, open 0..1, blink 0..1, squint 0..1
