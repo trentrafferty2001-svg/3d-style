@@ -49,14 +49,16 @@ for f in os.listdir(os.path.join(REPO, 'scripts')):
 main = os.path.join(eng, 'src', 'main.js'); m = open(main).read()
 open(main, 'w').write(re.sub(r"from '\./shots_\w+\.js'", f"from './{shot}'", m))
 
-if dur is None:   # DURATION is a formula (the shaduf demo): ask the page
+if dur is None or not cuts:   # DURATION or the cut times are formulas (the shaduf demo): ask the page
     probe = os.path.join(eng, '_duration.mjs')
     open(probe, 'w').write("""import { chromium } from 'playwright'; import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 const ROOT = process.argv[2]; const server = http.createServer((req, res) => { const p = path.join(ROOT, decodeURIComponent(req.url.split('?')[0])); fs.readFile(p, (e, d) => { if (e) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'Content-Type': p.endsWith('.js') ? 'text/javascript' : p.endsWith('.html') ? 'text/html' : 'application/octet-stream' }); res.end(d); }); }).listen(0);
 const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const pg = await b.newPage({ viewport: { width: 90, height: 160 } });
 await pg.goto(`http://localhost:${server.address().port}/index.html?render=1&res=90&mb=1&noao`); await pg.waitForFunction(() => window.renderAt && window.ready);
-console.log(await pg.evaluate(() => window.DURATION)); await b.close(); server.close();""")
-    dur = float(subprocess.run(['node', '_duration.mjs', '.'], cwd=eng, capture_output=True, text=True, timeout=600).stdout.strip().splitlines()[-1])
+console.log(JSON.stringify(await pg.evaluate(() => [window.DURATION, window.CUTS || []]))); await b.close(); server.close();""")
+    import json as _json
+    _d, _c = _json.loads(subprocess.run(['node', '_duration.mjs', '.'], cwd=eng, capture_output=True, text=True, timeout=600).stdout.strip().splitlines()[-1])
+    dur = dur or float(_d); cuts = cuts or sorted(float(c) for c in _c)
 results = []
 def run(name, cmd, ok, cwd=eng, timeout=3600, env=None):
     print(f'-- {name}', flush=True)
