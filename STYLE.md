@@ -290,6 +290,27 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   a step): render it after any cloth change and compare. **Test scene** `shots_cf.js` (5.5 s): a Roman worker walking along
   the pavement, then one pointing down the street.
 
+### Hair and beards (v1.15.0, Nov 2026)
+
+- **`hair.js`**, used by `toon({ hairStyle, beard, hair, beardColor })`: every style is a shell laid on the head's own shape
+  with an offset field over the directions round the head. Positive offset is hair that far off the scalp, negative is
+  tucked under the skin, so the hairline is where hair grows out of the scalp (receding a little at the temples, rising
+  round the ears, low at the nape), not the cut edge of a cap. Curls are geometry (lumps that break the silhouette) plus
+  normal detail in the shader (`hairShading`, the exact-gradient method from the cloth creases).
+- Styles: `crop` (short tight curls, the default), `curls` (a fuller head), `braids` (crop with four to six plaits at the
+  back, tied, to the nape), `shaved` (stubble with a short ragged fringe), `headcloth` (a linen kerchief over the head and
+  ears, a rolled hem at the brow, knotted behind), `cap` (the v1.0 smooth cap, kept as the Persian worker's skullcap).
+  Beards: `none`, `stubble`, `short` (with a moustache), `full` (longer at the chin); always clear of the mouth, so
+  speech still shows. `beardColor` keeps a beard dark under a light headcloth.
+- `crowd.js` `extra()` picks a seeded style and beard (`seededLook`), a linen colour for a headcloth; `egyptWorker()` wears a
+  headcloth or short hair, `persianWorker2()` the skullcap, the paddy farmer short hair under the hat.
+- **Probe** `scripts/probe_hair.mjs <engine> <duration> [step]`: no hair or beard outside a hat that covers it, beards at
+  least 1.5 mm from the lips and mouth through the clip, braids and kerchief ends never inside the neck or shoulders.
+  Shell points under the skin are skipped (`hairOff`). `qa.py` runs it for every scene with a character.
+- **Hair bench** `shots_hr.js` (14 heads: every style and beard from the front, side and back, the head covers, a hat): render
+  it after any hair change. The face bench `shots_ft.js` shows the default crop. **Test scene** `shots_hs.js` (5.5 s):
+  five townspeople talking under a portico, seen along the group from each end.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -362,6 +383,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Simulated ropes: stretch, ground, bodies | `probe_simrope.mjs <engine> <duration>` | PASS |
 | Crowds: foot skating, people overlapping, feet in the ground | `probe_crowd.mjs <engine> <duration>` | PASS |
 | Cloth: no skin through the tunic or kilt, the belt on the cloth | `probe_cloth.mjs <engine> <duration>`, cloth bench `shots_cl.js` after cloth changes | PASS |
+| Hair: nothing through hats, beards clear of the mouth, braids clear of the body | `probe_hair.mjs <engine> <duration>`, hair bench `shots_hr.js` after hair changes | PASS |
 | Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -499,6 +521,19 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   destructuring assignment, `[x, z] = ...`, which `swallow_scan.py` didn't know. It does now.
 - A raised thigh can't push a skirt out of the way, it has to carry it: pushing points out of the thigh split the front
   and showed the knee. Drape the cloth in front of a lifted thigh over the knee, then push.
+
+- A shell that switches from "hair" to "hidden" between two neighbouring points has an edge that steps along its triangles:
+  ramp the offset smoothly through zero and the hairline (or a beard's edge) follows the field, not the mesh.
+- three.js defines `perturbNormalArb` only for materials with a bump map: a shader that perturbs normals on any other
+  material needs its own copy (with the edge-on guard).
+- "The back of the head" is z < 0 in head space: the first braids were placed at angles on the front half and hung by the
+  sides of the neck. Check a placement with a still from behind before trusting the formula.
+- Measure where heads are before framing them: people standing on a 22 cm pavement have their heads at about 1.85 m, and
+  two test framings aimed at 1.55 m cut them off. In a 9:16 frame a track across a group mostly shows the gaps; looking
+  along the group from one end keeps every head in the narrow frame (check each head's angle against the half field of
+  view, 9 degrees for a 32 degree lens).
+- A probe's "inside the body" test must ignore parts that are hidden anyway: the top of the neck mesh sits inside the head
+  and made every braid root look 5 mm deep.
 
 Engine based on [claude-animation-skills](https://github.com/artemnovitckii/claude-animation-skills) (MIT, see
 `engine/LICENSE-claude-animation-skills.txt`). Poppins font: SIL OFL. three.js (MIT) and the Kokoro voice model

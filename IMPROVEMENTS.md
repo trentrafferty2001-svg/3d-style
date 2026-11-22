@@ -103,7 +103,8 @@ A. *(Done in v1.14.0: folds, shoulders, belt, leg drape and push, creases, `prob
    **Cloth folds.** Tunics and kilts are smooth shells (boxy shoulders in close-ups, only the hem swings). Folds and
    wrinkles that follow the body (bump/normal detail plus a few modelled folds at the belt, elbows and knees).
    *Proof:* close-up stills front and side, kilt probe, palm-vs-cloth probe.
-B. **Hair and beards.** Hair is a smooth cap. A few hairstyles (short curls, braids, shaved with a fringe, a headcloth)
+B. *(Done in v1.15.0: `hair.js` styles and beards, seeded crowds, `probe_hair.mjs`, hair bench `shots_hr.js`.)*
+   **Hair and beards.** Hair is a smooth cap. A few hairstyles (short curls, braids, shaved with a fringe, a headcloth)
    and beards, seeded per character so crowds vary. *Proof:* face bench (`shots_ft.js`) stills, no hair through hats.
 C. **Hands up close.** The palm is still an egg (mittens). Knuckles, a flatter, squarer palm, nails, finger pads.
    *Proof:* hand bench (`shots_hb.js`) before/after, `probe_grasp.mjs`.
@@ -227,3 +228,10 @@ slowest step is now pushing to the big render-out branch.
   blocks, a raised thigh splitting the skirt, cloth pushed in between the legs, a probe blind to all this until it was
   given the right bones and layers and proved on a broken copy, two swallowed lines (the scan now knows destructuring),
   and probes reading a stale skin pose for people of a shot not on screen.
+- **22 Nov 2026 (session 3, cont.):** Item B, hair and beards (v1.15.0): `hair.js` (shells on the head's own shape with an
+  offset field, so hairlines grow out of the scalp; crop, curls, braids, shaved with a fringe, a linen headcloth; stubble,
+  short and full beards clear of the mouth), seeded per extra, `probe_hair.mjs`, a hair bench and a talking-group test
+  scene. QA caught: a bowl-cut hairline, stair-stepped edges (a hard switch between hair and hidden), a fringe like a
+  strip of tape, a headcloth band floating off the brow, braids by the sides of the neck (placed on the front half) and
+  then 27 mm into the upper back, a moustache on the upper lip, headcloths and beards in hair colour, and test cameras aimed
+  at heads 30 cm too low.
