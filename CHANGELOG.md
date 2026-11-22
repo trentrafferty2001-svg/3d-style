@@ -8,6 +8,8 @@ God rays (the optional part of backlog item 6). The channels stay on v1.0.0 unti
 
 - `main.js`: an opt-in god-ray pass (`rays` from a shot's update): light shafts from the sun through gaps, in HDR before
   bloom. Scenes that don't ask for it are unchanged. Test scene `shots_gr.js`.
+- Fix (crowds, v1.11.0): `walk()` put each foot on the wrong side, so walkers' legs crossed like scissors. `probe_crowd.mjs`
+  now checks for crossed legs. `qa.py` re-checks flagged sparkles at 3 sub-frames (aliasing clears, blow-ups stay).
 
 ## v1.11.0 (22 Nov 2026) = commit 4d072ec1c5c4d7277ec457c3f96f60f3826bbd56
 Crowds and extras (backlog item 8) and adaptive motion blur (item 9). The channels stay on v1.0.0 until the owner

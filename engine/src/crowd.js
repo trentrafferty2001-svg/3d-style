@@ -28,16 +28,19 @@ export function extra({ seed = 1, outfit = 'tunic', height = null, skin = null, 
 // and the IK dragged the foot along: skating)
 export function walk(F, t, { path, speed = 1.1, d0 = 0, groundAt, stride = 0.6, lift = 0.09, look = null } = {}) {
   const k = F.size || 1, L = stride * k, d = d0 + speed * t, ah = 0.075 * k;
-  const at = (s) => path(s), here = at(d), side = V3(-here.dir.z, 0, here.dir.x);       // side: to the walker's left
+  // left of a walker heading along dir (y up): (dir.z, 0, -dir.x). The first version had the sign flipped and put the left
+  // foot on the right: the legs crossed like scissors on every step
+  const leftOf = (dir) => V3(dir.z, 0, -dir.x);
+  const at = (s) => path(s), here = at(d), side = leftOf(here.dir);
   const footAt = (i) => {                                                               // i: 0 left, 1 right
     const ph = ((d / L + i) % 2 + 2) % 2, start = d - (ph % 1) * L;
     const sx = i === 0 ? 1 : -1;
-    if (ph < 1) { const p = at(start + L / 2), sd = V3(-p.dir.z, 0, p.dir.x); const q = p.pos.clone().addScaledVector(sd, sx * 0.1 * k); q.y = groundAt(q.x, q.z) + ah; return { q, stance: true }; }
+    if (ph < 1) { const p = at(start + L / 2), sd = leftOf(p.dir); const q = p.pos.clone().addScaledVector(sd, sx * 0.1 * k); q.y = groundAt(q.x, q.z) + ah; return { q, stance: true }; }
     // swing (start = where the body was when this foot lifted): from the last plant, half a stride behind, to the next,
     // a stride and a half ahead (it lands as the body reaches start + L, half a stride ahead of it, as in the stance case)
     // the foot rises before it travels and comes straight down at the end (no sliding at toe-off or heel strike)
     const u = sm(Math.min(1, Math.max(0, (ph - 1 - 0.12) / 0.76))), from = at(start - L / 2), to = at(start + 1.5 * L);
-    const a = from.pos.clone().addScaledVector(V3(-from.dir.z, 0, from.dir.x), sx * 0.1 * k), b = to.pos.clone().addScaledVector(V3(-to.dir.z, 0, to.dir.x), sx * 0.1 * k);
+    const a = from.pos.clone().addScaledVector(leftOf(from.dir), sx * 0.1 * k), b = to.pos.clone().addScaledVector(leftOf(to.dir), sx * 0.1 * k);
     const q = a.lerp(b, u); q.y = groundAt(q.x, q.z) + ah + lift * k * Math.sin(Math.PI * (ph - 1)); return { q, stance: false };
   };
   const phase = (d / L) * Math.PI;                                                      // one step = pi

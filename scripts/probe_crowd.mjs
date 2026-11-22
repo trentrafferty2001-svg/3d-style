@@ -3,6 +3,7 @@
 //     between them (a planted foot that slides reads as ice; skating feet also sweep through anything on the ground)
 //  2. no two people overlap: torsos and heads keep at least 2 cm apart
 //  3. every sole stays on or above the ground (no feet sunk more than 2 cm)
+//  4. legs never cross: each left ankle stays on its own left of the right ankle (a scissor walk)
 // usage (from the engine folder): node probe_crowd.mjs <engine dir> <duration s>  -> PASS / FAIL
 import { chromium } from 'playwright'; import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
 const ROOT = process.argv[2], DUR = Number(process.argv[3] || 5);
@@ -16,7 +17,7 @@ const out = await pg.evaluate(async (DUR) => {
     let s = den > 1e-12 ? Math.min(1, Math.max(0, (bb * f - c * e) / den)) : 0, t = (bb * s + f) / e;
     if (t < 0) { t = 0; s = Math.min(1, Math.max(0, -c / a)); } else if (t > 1) { t = 1; s = Math.min(1, Math.max(0, (bb - c) / a)); }
     return p1.clone().addScaledVector(d1, s).distanceTo(p2.clone().addScaledVector(d2, t)); };
-  let skate = 0, skAt = '', overlap = 1e9, ovAt = '', sink = 0, siAt = '', prev = null, nChars = 0;
+  let skate = 0, skAt = '', overlap = 1e9, ovAt = '', sink = 0, siAt = '', prev = null, nChars = 0, cross = 0, crAt = '';
   for (let f = 0; f <= Math.floor(DUR * 30); f++) { const t = f / 30; window.renderAt(t);
     const FS = window._FS || [], S = window._SITE, G = S.userData.groundAt || S.userData.heightAt; nChars = Math.max(nChars, FS.length);
     const now = FS.map((F, ci) => ['l', 'r'].map(s => { const a = F.bones[s + 'An'].getWorldPosition(new V()), k = F.size || F.root.scale.x || 1; return { a, h: a.y - 0.075 * k - G(a.x, a.z), ci, s }; }));
@@ -24,6 +25,10 @@ const out = await pg.evaluate(async (DUR) => {
     if (prev) for (let ci = 0; ci < now.length; ci++) for (let j = 0; j < 2; j++) { const a = now[ci][j], p = prev[ci] && prev[ci][j]; if (!p) continue;
       if (a.h < 0.015 && p.h < 0.015) { const m = Math.hypot(a.a.x - p.a.x, a.a.z - p.a.z); if (m > skate) { skate = m; skAt = `${t.toFixed(2)} s character ${ci} ${a.s}`; } } }
     prev = now;
+    // legs crossed: the left ankle must be on the character's left of the right ankle (along the hips' left axis)
+    FS.forEach((F, ci) => { const k = F.size || F.root.scale.x || 1, l = F.bones.lAn.getWorldPosition(new V()), r = F.bones.rAn.getWorldPosition(new V());
+      const left = F.bones.lHip.getWorldPosition(new V()).sub(F.bones.rHip.getWorldPosition(new V())).setY(0).normalize();
+      const c = -l.sub(r).setY(0).dot(left) / k; if (c > cross) { cross = c; crAt = `${t.toFixed(2)} s character ${ci}`; } });
     const caps = FS.map(F => { const k = F.size || F.root.scale.x || 1, bp = (n) => F.bones[n].getWorldPosition(new V());
       return [{ a: bp('hips'), b: bp('neck'), r: 0.15 * k }, { a: bp('head'), b: bp('head'), r: 0.13 * k }]; });
     for (let i = 0; i < caps.length; i++) for (let j = i + 1; j < caps.length; j++) for (const c1 of caps[i]) for (const c2 of caps[j]) {
@@ -31,6 +36,7 @@ const out = await pg.evaluate(async (DUR) => {
   log.push(`${nChars} characters`);
   log.push(`foot skating: a planted foot moved at most ${(skate * 1000).toFixed(1)} mm in a frame (${skAt}) (want < 3)`); if (skate > 0.003) ok = false;
   log.push(`closest two people: ${overlap > 1e8 ? 'n/a' : (overlap * 100).toFixed(1) + ' cm'} (${ovAt}) (want > 2 cm)`); if (overlap < 0.02) ok = false;
+  log.push(`legs crossed: the left ankle at most ${(cross * 100).toFixed(1)} cm right of the right ankle (${crAt}) (want < 2)`); if (cross > 0.02) ok = false;
   log.push(`deepest sole under the ground: ${(sink * 100).toFixed(1)} cm (${siAt}) (want < 2)`); if (sink > 0.02) ok = false;
   return { ok, log };
 }, DUR);

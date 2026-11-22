@@ -394,6 +394,9 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   only with something in front of the sun.
 - The code-made music bed rings out over its last second, and earshot then hears no music at the end: make the bed 2 s
   longer than the clip and cut it, with a short fade.
+- The first walk put each foot on the wrong side (a sign flipped in the walker's left vector), so the legs crossed like
+  scissors on every step, and no probe noticed: skating, overlap and ground checks all passed. The god-ray close-up showed
+  it. `probe_crowd.mjs` now checks that each left ankle stays on its own left of the right ankle.
 - A walk's stride must fit the leg: when the back foot is out of reach at the end of a step, IK drags it along (the
   probe caught 5 mm of skating per frame). Shorten the stride or lower the hips a little (bent knees), and let a foot
   rise before it travels and come straight down.

@@ -173,4 +173,5 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
 - **22 Nov 2026 (overnight, cont.):** God rays (v1.12.0), the optional part of item 6: an opt-in rays pass in main.js and a
   colonnade test scene. QA caught rays that washed the whole sky (threshold now only the sun), a first camera with nothing
   in front of the sun, and a walker who stayed out of frame. A crowd mix failed earshot because the music bed rings out
-  at its end (now made longer and cut).
+  at its end (now made longer and cut). The god-ray close-up also showed the crowd walkers' legs crossing on every step (a flipped
+  side vector in `walk()`): fixed, a crossed-legs check added to `probe_crowd.mjs`, and the crowd clip rendered again.
