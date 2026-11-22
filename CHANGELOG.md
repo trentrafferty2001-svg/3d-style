@@ -3,6 +3,12 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.12.0 (22 Nov 2026) = commit PENDING
+God rays (the optional part of backlog item 6). The channels stay on v1.0.0 until the owner moves them.
+
+- `main.js`: an opt-in god-ray pass (`rays` from a shot's update): light shafts from the sun through gaps, in HDR before
+  bloom. Scenes that don't ask for it are unchanged. Test scene `shots_gr.js`.
+
 ## v1.11.0 (22 Nov 2026) = commit 4d072ec1c5c4d7277ec457c3f96f60f3826bbd56
 Crowds and extras (backlog item 8) and adaptive motion blur (item 9). The channels stay on v1.0.0 until the owner
 moves them.

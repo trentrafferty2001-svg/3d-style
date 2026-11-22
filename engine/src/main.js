@@ -220,6 +220,22 @@ const sanitize = new ShaderPass({
       gl_FragColor = vec4(min(max(c.rgb, 0.0), vec3(uMax)), c.a); }`,
 });
 composer.addPass(sanitize);
+// god rays (v1.12, the optional part of backlog item 6): light shafts from the sun through gaps (between columns, palm
+// fronds, a doorway). A radial blur of the brightest light towards the sun's place on screen, in HDR before bloom, so it
+// takes the real sky and sun. Off unless a shot returns { rays: 0..1 } and the sun is near the frame.
+const rays = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, uSun: { value: new THREE.Vector2(0.5, 0.8) }, uRays: { value: 0 }, uAspect: { value: W / H } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform vec2 uSun; uniform float uRays, uAspect; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = (uSun - vUv) / 56.0; vec2 p = vUv; vec3 acc = vec3(0.0); float w = 1.0;
+      for (int i = 0; i < 56; i++) { p += d; vec3 q = texture2D(tDiffuse, clamp(p, 0.0, 1.0)).rgb; float l = dot(q, vec3(0.299, 0.587, 0.114));
+        acc += q * smoothstep(2.6, 7.0, l) * w; w *= 0.965; }   // only the sun and its glow: a lower threshold washed the whole sky
+      vec2 off = (vUv - uSun) * vec2(uAspect, 1.0);
+      float fall = exp(-length(off) * 1.6);                            // strongest near the sun
+      gl_FragColor = vec4(c.rgb + acc / 56.0 * uRays * 2.2 * fall * vec3(1.0, 0.92, 0.78), c.a); }`,
+});
+rays.enabled = false;
+composer.addPass(rays);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 composer.addPass(grade);
@@ -302,6 +318,13 @@ function drawScene(t, idx, jit) {
     }
   }
   grade.uniforms.uFlare.value = Math.max(0, flare);
+  rays.enabled = false;
+  if (r.rays && shot.scene.userData.sunDir) {
+    const p = cam.position.clone().addScaledVector(shot.scene.userData.sunDir, 300).project(cam);
+    const m = Math.max(Math.abs(p.x), Math.abs(p.y));
+    if (p.z < 1 && m < 1.8) { rays.enabled = true; rays.uniforms.uSun.value.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5);
+      rays.uniforms.uRays.value = r.rays * Math.min(1, Math.max(0, (1.8 - m) / 0.6)); rays.uniforms.uAspect.value = W / H; }
+  }
   let whip = 0;
   if (QS0.has('whip')) SHOTS.forEach((s, i) => { if (i === 0) return; const d = (t - s.start) / 0.07; const w = Math.exp(-d * d); if (w > Math.abs(whip)) whip = (i % 2 ? 1 : -1) * w; });
   grade.uniforms.uWhip.value = whip;

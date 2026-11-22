@@ -22,7 +22,8 @@ session log at the bottom, then commit.
 ## Status (21 Nov 2026)
 
 Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
-(item 5: caustics) and v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
+(item 5: caustics), v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) and v1.12.0 (god rays, the
+last open part of item 6) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
 before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. All ten backlog items now have work behind them; ask the owner which to deepen next.
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
@@ -58,7 +59,7 @@ Shipped in v1.0.0:
 
 Ordered by how much a viewer would notice. Each item names how to prove it worked.
 
-0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials, apart from god rays.)*
+0. *(Done in v1.1.0: items 6 + 7, light and grade + skin and materials; god rays added in v1.12.0.)*
    *(Done: item 2, sets: Rome v1.2.0, Indus v1.3.0, Egypt v1.4.0, Persia v1.5.0, farm v1.6.0. The loose `props*.js` builders
    were not redone: upgrade a prop when a video first needs it, with the set materials.)*
 1. *(Done in v1.7.0: lip-sync, `lipsync.js` + `probe_lips.mjs`.)* **Lip-sync to the voice.** The mouth only follows a hand-made face timeline. Drive `face({open, oh, wide})`
@@ -169,3 +170,7 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   Item 9 in the same release: adaptive motion blur (sub-frames from on-screen motion), measured on Kaggle (8% faster on
   the busy demo at 44 dB PSNR; calm scenes use about half the sub-frames). `probe_rome.mjs` now checks the lower foot of
   a walker (the other one swings).
+- **22 Nov 2026 (overnight, cont.):** God rays (v1.12.0), the optional part of item 6: an opt-in rays pass in main.js and a
+  colonnade test scene. QA caught rays that washed the whole sky (threshold now only the sun), a first camera with nothing
+  in front of the sun, and a walker who stayed out of frame. A crowd mix failed earshot because the music bed rings out
+  at its end (now made longer and cut).

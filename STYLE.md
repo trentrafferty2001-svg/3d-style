@@ -242,6 +242,14 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
   rendered 8% faster (159 s against 173 s), at 44 dB PSNR against the fixed render (no visible change): on the GPU a
   good part of each frame's time is not the sub-frames (reading pixels back, encoding), so calm scenes gain most.
 
+### God rays (v1.12.0, Nov 2026)
+
+- Opt-in per shot: return `rays: 0..1` from a shot's update (with `flare` if you like). `main.js` then adds light shafts:
+  a radial blur of the brightest light (the sun and its glow only) towards the sun's place on screen, in HDR before
+  bloom, strongest near the sun. It needs something between the camera and the sun (columns, fronds, a doorway): over
+  open sky it only adds glow. Off when the sun is far outside the frame.
+- **Test scene** `shots_gr.js` (4.5 s): down a Roman colonnade into a low sun, a man walking through the shafts.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -379,6 +387,10 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
+- God rays from every bright pixel washed the whole sky into haze: only the sun and its glow should make shafts, and
+  only with something in front of the sun.
+- The code-made music bed rings out over its last second, and earshot then hears no music at the end: make the bed 2 s
+  longer than the clip and cut it, with a short fade.
 - A walk's stride must fit the leg: when the back foot is out of reach at the end of a step, IK drags it along (the
   probe caught 5 mm of skating per frame). Shorten the stride or lower the hips a little (bent knees), and let a foot
   rise before it travels and come straight down.
