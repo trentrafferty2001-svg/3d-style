@@ -3,6 +3,16 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
+## v1.15.0 (22 Nov 2026) = commit 8d8bcbccbccae4c7d7da3bea4093ca0f5b827d91
+Hair and beards (new backlog item B). The channels stay on v1.0.0 until the owner moves them.
+
+- `hair.js` (new): styles are shells on the head's own shape with an offset field, so hairlines grow out of the scalp:
+  `crop` (the new default for everyone), `curls`, `braids`, `shaved` (with a fringe), `headcloth` (a linen kerchief knotted
+  behind), `cap` (the v1.0 cap); beards `stubble`, `short`, `full`, clear of the mouth. `toon({ hairStyle, beard,
+  beardColor })`. `crowd.js` extras get seeded looks; `egyptWorker()` a headcloth or short hair; `persianWorker2()` the cap.
+- QA: `probe_hair.mjs` (hats, beards vs the mouth, braids vs the body; `qa.py` runs it for every character), hair bench
+  `shots_hr.js`, test scene `shots_hs.js`.
+
 ## v1.14.0 (22 Nov 2026) = commit 078083c8dbfdc55433d5b3a746c5081777a4812b
 Cloth folds (new backlog item A). The channels stay on v1.0.0 until the owner moves them.
 

@@ -21,8 +21,8 @@ session log at the bottom, then commit.
 
 ## Status (22 Nov 2026)
 
-New backlog (A-F below), session 3: A (cloth folds) is released as v1.14.0 and its clip sent; B (hair and beards) is in
-progress, then C (hands up close), D, E, F. The channels stay on v1.0.0 until the owner starts January content.
+New backlog (A-F below), session 3: A (cloth folds) v1.14.0 and B (hair and beards) v1.15.0 are released and their clips
+sent; C (hands up close) is in QA and D (more ways to move) in progress, then E and F. The channels stay on v1.0.0 until the owner starts January content.
 
 ### Earlier status (21 Nov 2026)
 
