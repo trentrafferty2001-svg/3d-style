@@ -387,6 +387,9 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   `pop_scan.py ... --impacts s,s` (only real impacts, each with its sound) so it isn't taken for a pop.
 - Put contacts (a mallet on a chisel, a foot landing, a cut on a hit) on an exact frame and hold them for a frame. Blows
   timed between frames (0.95 s is frame 28.5) were never seen touching: the mallet stopped short in every frame.
+- A low sun grazing column rims and pebbles trips the sparkle scan at one sample per pixel: that is edge aliasing, and it
+  averages away at the 3 sub-frames every final frame gets. A real shading blow-up stays bright however many samples are
+  taken. `qa.py` re-renders flagged stills at 3 sub-frames and passes them only if they clear.
 - God rays from every bright pixel washed the whole sky into haze: only the sun and its glow should make shafts, and
   only with something in front of the sun.
 - The code-made music bed rings out over its last second, and earshot then hears no music at the end: make the bed 2 s
