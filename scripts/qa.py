@@ -12,7 +12,8 @@ Checks, chosen from what the shot file sets up under ?dbg:
   _HOLDS      probe_grasp.mjs (fingers on ropes, handles, tools; wrist; reach)
   _ROPE       probe_simrope.mjs (simulated rope: stretch, ground, bodies)
   crowd.js    probe_crowd.mjs (foot skating, people overlapping, feet in the ground)
-  characters  probe_cloth.mjs (no skin through the tunic or kilt, the belt on the cloth)
+  characters  probe_cloth.mjs (no skin through the tunic or kilt, the belt on the cloth), probe_hair.mjs (hats, beards
+              clear of the mouth, braids clear of the body)
   lipTracks   probe_lips.mjs with the scene's vo_X.js (closures, openings, rounding, silence)
   shaduf      the demo's own probes: probe_qa, probe_rope, probe_bucket_body, probe_feet, probe_hands
 --quick skips the stills and the preview (probes and scans only). Sound (earshot) runs on the final MP4, not here.
@@ -78,6 +79,7 @@ if '_ROPE' in SRC: run('probe simrope', ['node', 'probe_simrope.mjs', '.', str(d
 if "from './crowd.js'" in SRC or 'walk(' in SRC: run('probe crowd', ['node', 'probe_crowd.mjs', '.', str(dur)], last_pass)
 if re.search(r"\b(toon|extra|\w+Worker\d?|paddyFarmer|farmer2)\(", SRC):   # anyone in a tunic or kilt (v1.14)
     run('probe cloth', ['node', 'probe_cloth.mjs', '.', str(dur), '0.1'], last_pass)
+    run('probe hair', ['node', 'probe_hair.mjs', '.', str(dur), '0.1'], last_pass)
 if 'shaduf' in SRC.lower():   # the shaduf demo's own probes (STYLE.md QA table)
     def qa_ok(t):
         f = re.search(r'sole bottom vs platform top ranges ([-\d.]+) \.\. ([-\d.]+)', t); nums = [float(x) for x in re.findall(r'min ([-\d.]+) m', t)]

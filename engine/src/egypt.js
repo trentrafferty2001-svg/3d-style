@@ -241,5 +241,5 @@ export function egyptSite({ seed = 4 } = {}) {
 }
 // an Egyptian worker: the v1.1 character in a white linen kilt and a cloth head cover (the cap drawn as pale linen)
 export function egyptWorker(i = 0) {
-  return toon({ skin: [0x8a5232, 0x7a4628, 0x93593a][i % 3], cloth: [0xf0e8d6, 0xe8dcc4, 0xf2ecde][i % 3], belt: [0xb08a50, 0x8a3a24, 0x6a7a9a][i % 3], hair: [0xece4d0, 0x2a1e16, 0xe4dac4][i % 3], seed: i });
+  return toon({ skin: [0x8a5232, 0x7a4628, 0x93593a][i % 3], cloth: [0xf0e8d6, 0xe8dcc4, 0xf2ecde][i % 3], belt: [0xb08a50, 0x8a3a24, 0x6a7a9a][i % 3], hair: [0xece4d0, 0x2a1e16, 0xe4dac4][i % 3], seed: i, hairStyle: i % 3 === 1 ? 'crop' : 'headcloth' }); // a linen headcloth, or short hair
 }

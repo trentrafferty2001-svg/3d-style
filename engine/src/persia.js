@@ -358,5 +358,5 @@ export function persiaSite({ seed = 5 } = {}) {
 }
 // a Persian worker: the v1.1 character in a belted tunic and a white cap (the cap drawn as pale cloth)
 export function persianWorker2({ color = 0x4a5e86, cap = 0xf0ece2, skin = 0x9a6644 } = {}) {
-  return toon({ skin, cloth: color, belt: 0x6a4a2a, hair: cap, outfit: 'tunic' });
+  return toon({ skin, cloth: color, belt: 0x6a4a2a, hair: cap, outfit: 'tunic', hairStyle: 'cap' }); // the white skullcap
 }

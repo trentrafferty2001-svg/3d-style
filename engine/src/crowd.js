@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { toon } from './toon.js';
 import { lipTrack, babble } from './lipsync.js';
+import { seededLook } from './hair.js';
 
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = (seed) => { let s = seed * 9301 + 49297; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
@@ -15,9 +16,9 @@ const HAIR = [0x1a1410, 0x241a14, 0x3a2a1c, 0x2a2420];
 
 // one extra: seed picks the look; height 0.9..1.08 of the hero; outfit 'tunic' or 'kilt'
 export function extra({ seed = 1, outfit = 'tunic', height = null, skin = null, cloth = null } = {}) {
-  const R = rng(seed + 11);
-  const F = toon({ skin: skin ?? SKINS[Math.floor(R() * SKINS.length)], cloth: cloth ?? CLOTH[outfit][Math.floor(R() * CLOTH[outfit].length)],
-    belt: [0x5a3a20, 0x7a2a1a, 0x3a2a1a][Math.floor(R() * 3)], hair: HAIR[Math.floor(R() * HAIR.length)], outfit, seed, headScale: 1.02 + R() * 0.1 });
+  const R = rng(seed + 11), look = seededLook(seed);
+  const sk = skin ?? SKINS[Math.floor(R() * SKINS.length)], cl = cloth ?? CLOTH[outfit][Math.floor(R() * CLOTH[outfit].length)], bl = [0x5a3a20, 0x7a2a1a, 0x3a2a1a][Math.floor(R() * 3)], hc = Math.floor(R() * HAIR.length);
+  const F = toon({ skin: sk, cloth: cl, belt: bl, hair: look.style === 'headcloth' ? [0xece4d0, 0xd8c890, 0xc9b38c, 0xb8c4c8][seed % 4] : HAIR[hc], beardColor: HAIR[hc], outfit, seed, headScale: 1.02 + R() * 0.1, hairStyle: look.style, beard: look.beard }); // a headcloth is linen, not hair-coloured
   const h = height ?? (0.92 + R() * 0.14); F.root.scale.setScalar(h); F.size = h;
   F.look_ = { blink: R() * 3, gesture: R() * 6, nod: R() * 5 };
   return F;

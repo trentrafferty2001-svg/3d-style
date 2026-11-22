@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { aimNegY } from './anim.js';
 import { TIME } from './world.js';
+import { addHair } from './hair.js';
 
 const SS = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -252,7 +253,9 @@ const prof = (keys) => (d) => {
 
 const rng = (seed) => { let s = (Math.abs(seed) * 9301 + 49297) % 233280; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
 // outfit: 'kilt' (linen shendyt, bare chest) or 'tunic' (knee-length belted tunic with short sleeves, e.g. Roman or Greek)
-export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outfit = 'kilt' } = {}) {
+// hairStyle: 'crop' (default), 'curls', 'braids', 'shaved', 'headcloth' or 'cap' (the v1.0 smooth cap, a skullcap);
+// beard: 'none', 'stubble', 'short', 'full' (hair.js, v1.15)
+export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outfit = 'kilt', hairStyle = 'crop', beard = 'none', beardColor = null } = {}) {
   const M = toonMaterials({ skin, cloth, hair, belt });
   const root = new THREE.Group();
   // ---------- skeleton ----------
@@ -572,17 +575,8 @@ export function toon({ skin, cloth, hair, belt, seed = 0, headScale = 1.08, outf
       const big = 1 - 0.3 * Math.abs(u - 0.5) * 2; m.position.set(p.x, p.y + dy * big, p.z - 0.0016); m.rotation.set(0, (u - 0.5) * 0.9, Math.atan2(tg.y, tg.x)); m.scale.set(big, big * sc, 0.7); });
     place(upperT, inU, -0.0022, 1); place(lowerT, inL, 0.0022, 0.9); lowerT.forEach(m => { m.visible = clench; });
   };
-  // short hair cap with a hairline, plus a little beard shadow on the jaw
-  {
-    const g = new THREE.SphereGeometry(R, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.53); const p = g.attributes.position; // close-cropped hair
-    const tilt = new THREE.Matrix4().makeRotationX(-0.55); const v = new THREE.Vector3();
-    for (let i = 0; i < p.count; i++) {
-      v.fromBufferAttribute(p, i).applyMatrix4(tilt).divideScalar(R); // tilted back: hairline high on the forehead, low at the nape
-      const q = headShape(v.x, v.y, v.z, R * 1.012); p.setXYZ(i, q[0], q[1], q[2]);
-    }
-    g.computeVertexNormals();
-    const m = new THREE.Mesh(g, M.hair); m.castShadow = true; head.add(m);
-  }
+  // hair and beard (hair.js): shells laid on headShape, seeded
+  const hairMeshes = addHair({ head, headShape, R, style: hairStyle, beard, hair: hair ?? 0x241a14, beardColor, skin: M.skin.color, seed, M });
 
   // ---------- hands: palm + 4 three-joint fingers + a two-joint thumb (v1.8) ----------
   // Hand frame (wrist bone): fingers point along -y, the thumb/index side is +z, the palm faces -x on the left hand and +x
