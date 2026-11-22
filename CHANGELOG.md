@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.12.0 (22 Nov 2026) = commit PENDING
+## v1.12.0 (22 Nov 2026) = commit 80408d49a196841f0d8cbe65f68cd82334620a71
 God rays (the optional part of backlog item 6). The channels stay on v1.0.0 until the owner moves them.
 
 - `main.js`: an opt-in god-ray pass (`rays` from a shot's update): light shafts from the sun through gaps, in HDR before
