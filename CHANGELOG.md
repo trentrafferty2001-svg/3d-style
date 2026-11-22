@@ -3,7 +3,7 @@
 Versions are pinned by commit (tags can't be pushed from the cloud sessions; the owner may add matching tags on
 GitHub). Use the full commit id in a channel's rules file.
 
-## v1.10.0 (22 Nov 2026) = commit PENDING
+## v1.10.0 (22 Nov 2026) = commit 30b09f2392124b46f8bec47107f81b38dfd93701
 Caustics (backlog item 5 finished). The channels stay on v1.0.0 until the owner moves them.
 
 - `water.js`: `causticsMaterial(floorMat, opts)`, the sunlit net on the bed of clear shallow water (shadowed by the sun's
