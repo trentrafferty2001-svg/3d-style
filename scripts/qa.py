@@ -13,6 +13,7 @@ Checks, chosen from what the shot file sets up under ?dbg:
   _ROPE       probe_simrope.mjs (simulated rope: stretch, ground, bodies)
   crowd.js    probe_crowd.mjs (foot skating, people overlapping, feet in the ground)
   lipTracks   probe_lips.mjs with the scene's vo_X.js (closures, openings, rounding, silence)
+  shaduf      the demo's own probes: probe_qa, probe_rope, probe_bucket_body, probe_feet, probe_hands
 --quick skips the stills and the preview (probes and scans only). Sound (earshot) runs on the final MP4, not here.
 Env: THREE_DIR (default /home/claude/deps/three), PLAYWRIGHT_DIR (default: npm root -g + /playwright)."""
 import os, re, shutil, subprocess, sys
@@ -29,7 +30,7 @@ three = os.environ.get('THREE_DIR', '/home/claude/deps/three')
 pw = os.environ.get('PLAYWRIGHT_DIR') or os.path.join(subprocess.run(['npm', 'root', '-g'], capture_output=True, text=True).stdout.strip(), 'playwright')
 
 # the scene's length and cuts: DURATION, and every shot's start after the first
-dur = float(re.search(r'export const DURATION\s*=\s*([\d.]+)', SRC).group(1))
+_dm = re.search(r'export const DURATION\s*=\s*([\d.]+)\s*;', SRC); dur = float(_dm.group(1)) if _dm else None   # else asked from the page below
 consts = {k: v for k, v in re.findall(r'(?:const|let)\s+(\w+)\s*=\s*([\w.]+\s*(?:/\s*[\d.]+)?)\s*[;,]', SRC)}
 for _ in range(4):                                             # follow aliases (const CUT = T_LET)
     consts = {k: consts.get(v.strip(), v) for k, v in consts.items()}
@@ -48,6 +49,14 @@ for f in os.listdir(os.path.join(REPO, 'scripts')):
 main = os.path.join(eng, 'src', 'main.js'); m = open(main).read()
 open(main, 'w').write(re.sub(r"from '\./shots_\w+\.js'", f"from './{shot}'", m))
 
+if dur is None:   # DURATION is a formula (the shaduf demo): ask the page
+    probe = os.path.join(eng, '_duration.mjs')
+    open(probe, 'w').write("""import { chromium } from 'playwright'; import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const ROOT = process.argv[2]; const server = http.createServer((req, res) => { const p = path.join(ROOT, decodeURIComponent(req.url.split('?')[0])); fs.readFile(p, (e, d) => { if (e) { res.writeHead(404); res.end(); return; } res.writeHead(200, { 'Content-Type': p.endsWith('.js') ? 'text/javascript' : p.endsWith('.html') ? 'text/html' : 'application/octet-stream' }); res.end(d); }); }).listen(0);
+const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] }); const pg = await b.newPage({ viewport: { width: 90, height: 160 } });
+await pg.goto(`http://localhost:${server.address().port}/index.html?render=1&res=90&mb=1&noao`); await pg.waitForFunction(() => window.renderAt && window.ready);
+console.log(await pg.evaluate(() => window.DURATION)); await b.close(); server.close();""")
+    dur = float(subprocess.run(['node', '_duration.mjs', '.'], cwd=eng, capture_output=True, text=True, timeout=600).stdout.strip().splitlines()[-1])
 results = []
 def run(name, cmd, ok, cwd=eng, timeout=3600, env=None):
     print(f'-- {name}', flush=True)
@@ -64,6 +73,15 @@ if '_SITE' in SRC: run('probe rome', ['node', 'probe_rome.mjs', '.'], last_pass)
 if '_HOLDS' in SRC: run('probe grasp', ['node', 'probe_grasp.mjs', '.', str(dur)], last_pass)
 if '_ROPE' in SRC: run('probe simrope', ['node', 'probe_simrope.mjs', '.', str(dur)], last_pass)
 if "from './crowd.js'" in SRC or 'walk(' in SRC: run('probe crowd', ['node', 'probe_crowd.mjs', '.', str(dur)], last_pass)
+if 'shaduf' in SRC.lower():   # the shaduf demo's own probes (STYLE.md QA table)
+    def qa_ok(t):
+        f = re.search(r'sole bottom vs platform top ranges ([-\d.]+) \.\. ([-\d.]+)', t); nums = [float(x) for x in re.findall(r'min ([-\d.]+) m', t)]
+        return bool(f) and -0.02 <= float(f.group(1)) and float(f.group(2)) <= 0.02 and nums and min(nums) > 0
+    run('probe qa (feet on the platform, bucket, hand-head and counterweight clearances)', ['node', 'probe_qa.mjs', '.'], qa_ok)
+    run('probe rope (rope meets bail and pole tip)', ['node', 'probe_rope.mjs', '.'], last_pass)
+    run('probe bucket body (nothing of him inside the bucket)', ['node', 'probe_bucket_body.mjs', '.'], lambda t: 'no body part inside' in t)
+    run('probe feet (ankles on target)', ['node', 'probe_feet.mjs', '.'], lambda t: 'all ankles on target' in t)
+    run('probe hands (hands on the rope, within reach)', ['node', 'probe_hands.mjs', '.', ','.join(f'{x * 0.05:.2f}' for x in range(int(dur * 20)))], lambda t: 'PASS' in t.strip().splitlines()[-1], timeout=5400)
 vo = re.search(r"from '\./(vo_\w+\.js)'", SRC)
 if 'lipTracks' in SRC and vo: run('probe lips', ['node', 'probe_lips.mjs', '.', 'src/' + vo.group(1)], last_pass)
 if not quick:
