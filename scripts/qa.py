@@ -77,8 +77,9 @@ if not quick:
         # 3 sub-frames every final frame gets (adaptive motion blur's minimum): re-render the flagged stills that way
         flagged = ','.join(sorted({m for m in re.findall(r't_([\d.]+)\.png:', sp)}, key=float))
         results.pop()
-        run('stills nodof mb3', ['node', 'render.mjs', 'stills', flagged, os.path.join(out, 'nodof_mb3')], lambda t: True, timeout=5400, env={'RES': '720', 'QS': 'mb=3&nodof&mbfixed'})
-        run('sparkle scan (flagged stills at 3 sub-frames: aliasing clears, blow-ups stay)', PY + [os.path.join(S, 'sparkle_scan.py'), os.path.join(out, 'nodof_mb3')], lambda t: 'PASS' in t.splitlines()[-1])
+        mbmin = re.search(r'mbMin:\s*(\d+)', SRC); mbmin = mbmin.group(1) if mbmin else '3'   # the fewest sub-frames a final frame gets
+        run('stills nodof mb' + mbmin, ['node', 'render.mjs', 'stills', flagged, os.path.join(out, 'nodof_mb3')], lambda t: True, timeout=5400, env={'RES': '720', 'QS': f'mb={mbmin}&nodof&mbfixed'})
+        run(f'sparkle scan (flagged stills at {mbmin} sub-frames: aliasing clears, blow-ups stay)', PY + [os.path.join(S, 'sparkle_scan.py'), os.path.join(out, 'nodof_mb3')], lambda t: 'PASS' in t.splitlines()[-1])
     run('preview 360p', ['node', 'render.mjs', 'video', os.path.join(out, 'preview_360.mp4'), '30'], lambda t: True, timeout=5400, env={'RES': '360', 'QS': 'mb=1'})
     pop = PY + [os.path.join(S, 'pop_scan.py'), os.path.join(out, 'preview_360.mp4'), ','.join(f'{c:.4f}' for c in cuts)] + (['--impacts', impacts] if impacts else [])
     run('pop scan', pop, lambda t: t.strip().splitlines()[-1].startswith('PASS'))

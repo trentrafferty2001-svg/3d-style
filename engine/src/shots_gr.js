@@ -6,7 +6,7 @@ import { romanSite, RS } from './roman.js';
 import { extra, walk, line } from './crowd.js';
 
 export const DURATION = 4.5; export const CAPTIONS = []; export const FADES = [];
-export const STYLE = { shadow: 'pcf', mb: 6, shutter: 0.5 };
+export const STYLE = { shadow: 'pcf', mb: 6, shutter: 0.5, mbMin: 4 }; // a low sun grazing the capitals' rims needs 4 sub-frames to settle
 const SUN = [-0.9, 0.2, 0.32];                           // low, down the street (-x), so the columns stand in front of it
 
 export const SHOTS = [
