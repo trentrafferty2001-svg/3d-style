@@ -68,3 +68,22 @@ export function lipTracks(lines, opts = {}) {
   const all = (t) => { let best = { ...REST, jaw: 0 }; for (const f of tr) { const m = f(t); if (m.open + m.press + m.fv > best.open + best.press + best.fv) best = m; } return best; };
   all.lead = opts.lead ?? 0.04; return all;
 }
+
+// babble: made-up speech for extras who talk with no voice track: syllables (a consonant and a vowel, some with m/b/p
+// so the lips close), grouped into words and phrases with pauses, between t0 and t1. Feed it to lipTrack.
+export function babble(seed = 1, t0 = 0, t1 = 2) {
+  let s = seed * 9301 + 49297; const R = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const C = ['m', 'b', 'p', 't', 'd', 'n', 'l', 's', 'k', 'w', 'h', 'f', 'ɹ'], Vw = ['ɑ', 'æ', 'ɛ', 'ɪ', 'i', 'O', 'u', 'ʌ', 'A', 'I'];
+  const out = []; let t = t0;
+  while (t < t1 - 0.2) {
+    const words = 2 + Math.floor(R() * 4);
+    for (let w = 0; w < words && t < t1 - 0.2; w++) {
+      const syl = 1 + Math.floor(R() * 3);
+      for (let k = 0; k < syl; k++) { const c = C[Math.floor(R() * C.length)], v = Vw[Math.floor(R() * Vw.length)], dc = 0.05 + R() * 0.04, dv = 0.07 + R() * 0.08;
+        out.push([c, t, t + dc]); out.push([v, t + dc, t + dc + dv]); t += dc + dv; }
+      out.push(['·', t, t + 0.05]); t += 0.05;
+    }
+    out.push(['_', t, t + 0.25 + R() * 0.3]); t += 0.25 + R() * 0.3;
+  }
+  return out;
+}

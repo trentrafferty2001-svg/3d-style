@@ -3,6 +3,7 @@
 // pure functions of time.
 import * as THREE from 'three';
 import { toon } from './toon.js';
+import { lipTrack, babble } from './lipsync.js';
 
 const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const rng = (seed) => { let s = seed * 9301 + 49297; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
@@ -75,9 +76,12 @@ export function chat(F, t, { pos, face, partner, groundAt, talking = () => false
   F.grip(0.2, 0.2 - 0.15 * g);
   const head = partner.clone().add(V3(0, 0.05 * Math.sin(t * 1.3 + R.nod), 0));
   F.headAt(head, 0.7); F.bones.head.rotation.x += 0.06 * Math.max(0, Math.sin((t + R.nod) * 2.4)) ** 4; F.root.updateMatrixWorld(true); F.look(head);
-  const talk = talking(t) ? 0.5 + 0.5 * Math.sin(t * 17 + seed) * Math.sin(t * 7.3) : 0;
+  // the mouth: made-up speech (babble) through the lip-sync, on this speaker's turns; a fresh phrase every 2 s
+  const turn = Math.floor(t / 2), key = `${seed}_${turn}`;
+  if (talking(t) && F._babKey !== key) { F._babKey = key; F._bab = lipTrack(babble(seed * 31 + turn, turn * 2 + 0.1, turn * 2 + 1.9)); }
+  const speech = talking(t) && F._bab ? F._bab(t) : null;
   const bt = (t + R.blink) % 3.3;
-  F.face({ smile: 0.3 + 0.2 * Math.sin(t * 0.5 + seed), open: Math.max(0, talk) * 0.6, brow: 0.15 * g, blink: bt < 0.14 ? 1 - Math.abs(bt - 0.07) / 0.07 : 0, cheek: 0.2 });
+  F.face({ smile: 0.3 + 0.2 * Math.sin(t * 0.5 + seed), brow: 0.15 * g, blink: bt < 0.14 ? 1 - Math.abs(bt - 0.07) / 0.07 : 0, cheek: 0.2, speech });
 }
 
 // a straight path from a to b (pauses are the caller's business)

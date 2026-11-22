@@ -22,8 +22,8 @@ session log at the bottom, then commit.
 ## Status (21 Nov 2026)
 
 Overnight 21-22 Nov the owner asked Claude to keep improving whatever needs it and to report at 8am SAST. v1.10.0
-(item 5: caustics), v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) and v1.12.0 (god rays, the
-last open part of item 6) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
+(item 5: caustics), v1.11.0 (item 8: crowds, plus adaptive motion blur from item 9) v1.12.0 (god rays, the
+last open part of item 6) and v1.13.0 (faster frame capture, talking extras) are released; v1.9.0 (item 4: rope and cloth), v1.8.0 (item 3: hands) and v1.7.0 (item 1: lip-sync)
 before it, all waiting for the owner's verdict. Item 10 (one-command QA, `scripts/qa.py`) is in place. All ten backlog items now have work behind them; ask the owner which to deepen next.
 v1.6.0 (the farm) completed item 2 (sets beyond the Nile): Rome, Indus, Egypt, Persia and the farm. Persia (v1.5.0),
 Egypt (v1.4.0), water (v1.3.1) and Indus (v1.3.0) were liked by the owner.
@@ -175,3 +175,6 @@ Ordered by how much a viewer would notice. Each item names how to prove it worke
   in front of the sun, and a walker who stayed out of frame. A crowd mix failed earshot because the music bed rings out
   at its end (now made longer and cut). The god-ray close-up also showed the crowd walkers' legs crossing on every step (a flipped
   side vector in `walk()`): fixed, a crossed-legs check added to `probe_crowd.mjs`, and the crowd clip rendered again.
+- **22 Nov 2026 (overnight, cont.):** Item 9 again (v1.13.0): the speed test showed most of a GPU frame's time is not the
+  3D render, and a full-HD PNG screenshot turned out to take 2.4 s on the CPU container against 79 ms for JPEG 98 (50.7 dB
+  PSNR, visually lossless). Kaggle now captures JPEG 98. Chatting extras lip-sync made-up speech (`babble`).

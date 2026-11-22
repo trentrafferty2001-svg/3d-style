@@ -74,7 +74,10 @@ src = src.replace("const browser = await chromium.launch({ args: [...GL, '--igno
 open(f'{E}/render.mjs', 'w').write(src)
 fps = job.get('fps', 30); N = job['frames']
 a = int(os.environ.get('FRAMES_FROM', 0)); b = int(os.environ.get('FRAMES_TO', N))
-env = dict(os.environ, GLFLAGS=json.dumps(found), RES='1080', CRF='10', PRESET='fast', **found_env)
+# frames leave the browser as JPEG at quality 98 (v1.13): a full-HD PNG screenshot is far slower to encode, and at 98 the
+# frame is visually lossless (about 50 dB PSNR) before x264 compresses it anyway. A job can ask for PNG with "jpeg": 0.
+JPEG = str(job.get('jpeg', 98))
+env = dict(os.environ, GLFLAGS=json.dumps(found), RES='1080', CRF='10', PRESET='fast', **({'JPEG': JPEG} if JPEG != '0' else {}), **found_env)
 t1 = time.time()
 P = int(os.environ.get('PARTS', 2))  # parallel render processes (the machine has 2 GPUs and several CPU cores)
 cuts = [a + (b - a) * k // P for k in range(P + 1)]

@@ -80,7 +80,7 @@ if not quick:
         mbmin = re.search(r'mbMin:\s*(\d+)', SRC); mbmin = mbmin.group(1) if mbmin else '3'   # the fewest sub-frames a final frame gets
         run('stills nodof mb' + mbmin, ['node', 'render.mjs', 'stills', flagged, os.path.join(out, 'nodof_mb3')], lambda t: True, timeout=5400, env={'RES': '720', 'QS': f'mb={mbmin}&nodof&mbfixed'})
         run(f'sparkle scan (flagged stills at {mbmin} sub-frames: aliasing clears, blow-ups stay)', PY + [os.path.join(S, 'sparkle_scan.py'), os.path.join(out, 'nodof_mb3')], lambda t: 'PASS' in t.splitlines()[-1])
-    run('preview 360p', ['node', 'render.mjs', 'video', os.path.join(out, 'preview_360.mp4'), '30'], lambda t: True, timeout=5400, env={'RES': '360', 'QS': 'mb=1'})
+    run('preview 360p', ['node', 'render.mjs', 'video', os.path.join(out, 'preview_360.mp4'), '30'], lambda t: True, timeout=5400, env={'RES': '360', 'QS': 'mb=1', 'JPEG': '95'})   # JPEG frames: far faster than PNG screenshots
     pop = PY + [os.path.join(S, 'pop_scan.py'), os.path.join(out, 'preview_360.mp4'), ','.join(f'{c:.4f}' for c in cuts)] + (['--impacts', impacts] if impacts else [])
     run('pop scan', pop, lambda t: t.strip().splitlines()[-1].startswith('PASS'))
 
