@@ -261,6 +261,35 @@ swings), `search_endcam.mjs` (end camera that keeps the bucket clear of the face
 - `babble(seed, t0, t1)` in lipsync.js makes up speech (syllables, words, pauses, some m/b/p closures) for extras who
   talk without a voice track; `chat()` feeds it through `lipTrack`, so their mouths make real shapes on their turns.
 
+### Cloth folds (v1.14.0, Nov 2026)
+
+- **Folds that follow the body** (`toon.js`, every tunic and kilt): each garment is a lathe shell bent by its own fold
+  field. Gathers where the belt pinches the cloth open into fewer, deeper folds towards the hem, and the hem rises and
+  falls with them; soft blousing over the belt; pull folds from each armpit across the chest and back; the kilt keeps its
+  pleats and gains a wrap panel with a real edge. Fold phases are seeded per character (`toon({ seed })`, crowd extras
+  get their own), so no two people fold alike.
+- **Shoulders and sleeves:** the shell rounds over the arm's cap (a soft push out of a sphere round each shoulder joint,
+  outwards and up only), so the shoulder is round instead of a flat top meeting the sleeve at a corner. Sleeves start
+  tucked inside the shell, widen below its edge and flare to a wavy hem; their dome is half on the chest, so a raised arm
+  stretches the cloth instead of lifting a rigid tube out of the shell. A rolled hem finishes the neckline.
+- **Belt:** the cloth is cinched onto the body under it (`bodyR`, the torso's exact radius) and the belt is laid on that
+  cinch, 2 mm into the cloth. It used to float up to 4 cm off the back.
+- **Legs move the skirt** (`clothShading`, in the vertex shader after skinning): a lifted thigh drapes the cloth in front of
+  it from the waist over the knee, hanging from there and tenting across to the other leg (climbing a step, and later
+  sitting or kneeling); then every skirt point inside a leg's capsule (hip-knee-ankle) is pushed out to its surface plus
+  1.2 cm. `clothPush()` is the same function in JS, for probes. The thighs now carry the skirt with weight 0.35 (0.7
+  swung the skirt's side up like a sail).
+- **Linen creases** (`clothShading`, fragment): fine creases running down the cloth as normal detail, from the rest pose
+  (they never swim), strength `CLOTH.wrinkle` (`?nowrinkle` turns them off for a check). They fade at grazing angles and
+  where a crease is finer than a pixel. The old weave bump that read as corduroy stripes is turned down.
+- `F.point(s, k)`: the index finger out, the others curled, the thumb over them (a half-curled hand read as a thumb-up).
+- **Probe** `scripts/probe_cloth.mjs <engine> <duration> [step]`: no skin pokes out through the cloth that covers it (torso
+  vs shell and skirt, arms vs sleeves, the shoulder cap vs sleeve and shell, legs vs skirt, with the legs' push applied),
+  and the belt's inner side within 6 mm of the cloth. `qa.py` runs it for every scene with a character.
+- **Cloth bench** `shots_cl.js` (12 stills: tunic and kilt front, side, back; arm raised, hands on hips, a step, a foot up on
+  a step): render it after any cloth change and compare. **Test scene** `shots_cf.js` (5.5 s): a Roman worker walking along
+  the pavement, then one pointing down the street.
+
 Sound follows the same idea: effects are locked to the animation by exporting its timing (`scripts/events.mjs`)
 and the pole creak follows the pole's angular speed (`scripts/make_audio_dm.py`).
 
@@ -309,7 +338,7 @@ and run them from there (e.g. `cp scripts/probe_hands.mjs /home/claude/style2/ &
 
 **One command:** `python3 -I scripts/qa.py <shots_X.js> <out dir> [--impacts s,s]` (from the repo root) copies the
 engine, points it at the shot file and runs every check below that applies (the probes are chosen from what the shot
-sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`, crowd.js, and the shaduf demo's own probes), then prints
+sets under `?dbg`: `_SITE`, `_HOLDS`, `_ROPE`, `lipTracks`, crowd.js, any clothed character, and the shaduf demo's own probes), then prints
 PASS/FAIL per check. Durations and cut times written as formulas are read from the page (`window.DURATION`, `window.CUTS`). `--quick` runs the probes
 and scans without the stills and preview. It still leaves two jobs to you: read every still, and run earshot on the
 final MP4.
@@ -332,6 +361,7 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
 | Hands on ropes, handles and tools: contact, no fingers inside, wrist, reach | `probe_grasp.mjs <engine> <duration>`, hand bench `shots_hb.js` after hand changes | PASS |
 | Simulated ropes: stretch, ground, bodies | `probe_simrope.mjs <engine> <duration>` | PASS |
 | Crowds: foot skating, people overlapping, feet in the ground | `probe_crowd.mjs <engine> <duration>` | PASS |
+| Cloth: no skin through the tunic or kilt, the belt on the cloth | `probe_cloth.mjs <engine> <duration>`, cloth bench `shots_cl.js` after cloth changes | PASS |
 | Lip-sync on a speaking character: closures, openings, rounding, silence, no flips | `probe_lips.mjs <engine> src/vo_X.js` | PASS |
 | Sound | `earshot critique`, `earshot sheet` | 0 critical/major, cuts on a hit |
 
@@ -449,6 +479,26 @@ Run these from the engine folder (copy the scripts in; they need `?dbg`, which `
   hand was gripping or reaching, so grips 8 cm off the rope at full arm stretch passed by eye. It now reads the grip
   state (`?dbg` exposes it) and prints a PASS line. A two-bone arm reaches 0.605 m: keep every grip target at or under
   about 0.59 m from the shoulder, or the arm locks straight and the palm stops short.
+
+- Two surfaces within a millimetre of each other z-fight in stepped patches that look like aliasing: the first sleeve's
+  side (7.8 cm from the shoulder joint) lay on the tunic's side. Bisect by hiding meshes and switching passes off (AO,
+  shadow map size, bump maps, creases) before blaming the light; then keep layers several mm apart.
+- A debug switch must switch everything it names: `?nowrinkle` first zeroed only the default crease strength, the wool
+  passed its own, and two bisection steps were wrong until that was found.
+- Screen-space derivatives of a detailed function (`dFdx(height)`) come per 2x2 pixel block and step in blocks where the
+  detail is fine on screen. Take the detail's gradient exactly per pixel and carry it with the derivatives of a smooth
+  value (the rest position), and fade detail finer than a pixel.
+- A noise pattern laid out by an angle (`atan`) has a seam where the angle jumps (the middle of the back): lay it on a
+  circle instead.
+- Cloth over a body must be tested against the body it covers, from the bone inside it outwards: tested from the wrong
+  bone (a forearm resting on the hip) or against the wrong layer (a sleeve's tucked top), the probe reported 17 cm of
+  skin through cloth that wasn't there. And prove the probe fires: shrink the cloth into the body and watch it FAIL.
+- The skirt's cinch looked up the body radius at the angle measured before the skirt's x/z scaling: at the back-sides the
+  cloth was pulled 13 mm too far in. Measure an angle after every transform that changes it.
+- Twice more a `//` comment swallowed code (a sleeve's `translate`, a skirt's closing brace); the second was a
+  destructuring assignment, `[x, z] = ...`, which `swallow_scan.py` didn't know. It does now.
+- A raised thigh can't push a skirt out of the way, it has to carry it: pushing points out of the thigh split the front
+  and showed the knee. Drape the cloth in front of a lifted thigh over the knee, then push.
 
 Engine based on [claude-animation-skills](https://github.com/artemnovitckii/claude-animation-skills) (MIT, see
 `engine/LICENSE-claude-animation-skills.txt`). Poppins font: SIL OFL. three.js (MIT) and the Kokoro voice model

@@ -35,7 +35,7 @@ const out = await pg.evaluate(async () => {
   let soleLo = 9, soleHi = -9, palmIn = 9, tP = 0;
   for (let t = 0; t <= window.DURATION; t += 0.1) {
     window.renderAt(t);
-    for (const F of FS) { F.root.updateMatrixWorld(true); const cloth = []; F.root.traverse(o => { if (o.isSkinnedMesh && ['kilt', 'tunic', 'sleeve'].includes(o.name)) cloth.push(o); });
+    for (const F of FS) { F.root.updateMatrixWorld(true); const cloth = []; F.root.traverse(o => { if (o.isSkinnedMesh && ['kilt', 'tunic', 'sleeve'].includes(o.name)) { o.skeleton.update(); cloth.push(o); } }); // (bone matrices refresh only on draw)
     const footD = [];
     for (const s of ['l', 'r']) {
       // sole: the lowest point of the foot meshes under the ankle bone
